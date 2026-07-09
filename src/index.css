@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+:root {
+  font-family: 'IBM Plex Mono', monospace;
+  /* Strudel theme CSS variables */
+  --background: white;
+  --foreground: #de1a1a;
+  --caret: #de1a1a;
+  --selection: rgba(222, 26, 26, 0.15);
+  --lineHighlight: rgba(222, 26, 26, 0.03);
+  --gutterBackground: transparent;
+  --gutterForeground: #acbed8;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #e8ebf7;
+  color: #2d3748;
+}
+
+#root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Strudel container */
+.strudel-container {
+  background-color: white;
+}
+
+.strudel-host {
+  height: 100%;
+  width: 100%;
+}
+
+/* CodeMirror Strudel theme overrides */
+.cm-editor {
+  height: 100%;
+  font-size: 13px;
+  background-color: white;
+}
+
+.cm-scroller {
+  overflow: auto;
+}
+
+.cm-content {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.cm-gutters {
+  background-color: #f8f9fc;
+  border-right: 1px solid #acbed8;
+}
+
+.cm-activeLineGutter {
+  background-color: rgba(222, 26, 26, 0.05);
+}
+
+.cm-activeLine {
+  background-color: rgba(222, 26, 26, 0.03);
+}
+
+/* Strudel canvas/visualization */
+.strudel-container canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Strudel pattern highlighting - active notes get outlined */
+.cm-editor .cm-line .cm-strudel-highlight,
+.cm-editor .cm-strudel-flash {
+  outline: solid 2px var(--foreground, #de1a1a);
+  outline-offset: -1px;
+  border-radius: 2px;
+}

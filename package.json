@@ -1,0 +1,71 @@
+{
+  "name": "beats-radio",
+  "version": "0.1.1",
+  "description": "Agent-composed Strudel radio: a bun server + prebuilt browser player you run with `bunx beats-radio start`.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/morganjbruce/beats-radio.git"
+  },
+  "type": "module",
+  "bin": {
+    "beats-radio": "bin/beats-radio.ts"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "server",
+    "scripts",
+    "skills",
+    "src/sounds-manifest.ts",
+    "CREDITS.md"
+  ],
+  "engines": {
+    "bun": ">=1.2"
+  },
+  "scripts": {
+    "dev": "concurrently \"bun run dev:frontend\" \"bun run dev:server\"",
+    "dev:frontend": "vite",
+    "dev:server": "bun --watch server/index.ts",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "validate": "bun scripts/validate-song.mjs",
+    "prepublishOnly": "bun run build"
+  },
+  "dependencies": {
+    "citty": "^0.2.2",
+    "cors": "^2.8.5",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@strudel/codemirror": "^1.2.6",
+    "@strudel/core": "^1.2.5",
+    "@strudel/draw": "^1.2.5",
+    "@strudel/mini": "^1.2.5",
+    "@strudel/soundfonts": "^1.2.6",
+    "@strudel/tonal": "^1.2.5",
+    "@strudel/transpiler": "^1.2.5",
+    "@strudel/webaudio": "^1.2.6",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "bun-types": "^1.3.5",
+    "concurrently": "^9.2.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "globals": "^16.5.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vite": "^7.2.4"
+  }
+}

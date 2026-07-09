@@ -1,0 +1,9 @@
+{
+  "name": "beats",
+  "version": "0.1.1",
+  "description": "Compose a full, arranged Strudel song and stream it to the browser radio player (bunx beats-radio).",
+  "author": {
+    "name": "Morgan Bruce",
+    "url": "https://github.com/morganjbruce/beats-radio"
+  }
+}

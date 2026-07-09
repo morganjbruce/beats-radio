@@ -1,0 +1,15 @@
+{
+  "name": "funkmaster",
+  "description": "Beats — agent-composed Strudel songs streamed to a browser radio player.",
+  "owner": {
+    "name": "Morgan Bruce",
+    "url": "https://github.com/morganjbruce/beats-radio"
+  },
+  "plugins": [
+    {
+      "name": "beats",
+      "source": "./",
+      "description": "Compose a full, arranged Strudel song and stream it to the browser radio player (bunx beats-radio)."
+    }
+  ]
+}
