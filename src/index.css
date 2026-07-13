@@ -25,11 +25,6 @@ body {
   overflow: hidden;
 }
 
-/* Dot-matrix display face — same visual language as the LED visualizer grid */
-.font-display {
-  font-family: 'Doto', 'IBM Plex Mono', monospace;
-}
-
 /* ON AIR lamp: hard on/off like a real studio sign, not a smooth pulse */
 @keyframes led-blink {
   0%, 55% { opacity: 1; }

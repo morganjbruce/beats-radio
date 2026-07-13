@@ -51,10 +51,10 @@ const FINE_GRID: CSSProperties = {
   WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 100%)',
 }
 
-// Transport buttons: square (matching the pixel grid), with a small lift on hover so
-// they feel pressable rather than clinical.
+// Transport buttons: uniform squares with a hard offset shadow; pressing sinks the
+// button into its shadow.
 const DECK_BTN =
-  'shrink-0 border border-[#acbed8] bg-white leading-none transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] enabled:hover:-translate-y-0.5 enabled:active:translate-y-0 disabled:opacity-40'
+  'shrink-0 w-12 h-12 text-base border border-[#2d3748] bg-white leading-none shadow-[3px_3px_0_#2d3748] transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-[1px_1px_0_#2d3748] disabled:opacity-40'
 
 // Header chips that open the queue/engine drawers.
 const CHIP_BTN =
@@ -63,30 +63,8 @@ const CHIP_BTN =
 const subtitle = (s: BeatsSong) =>
   [s.author ? `by ${s.author}` : null, s.genre, s.mood].filter(Boolean).join(' · ')
 
-// Song progress as a strip of LED cells lit through the visualizer's own heat ramp
-// (gold rising through the theme red into hot magenta) — same palette as `spectrum`.
-const PROGRESS_RAMP = ['#d98e1f', '#f0a02e', '#f25c1f', '#de1a1a', '#b3123f', '#ff2e92']
-const PROGRESS_CELLS = 36
-
-function ProgressLeds({ progress }: { progress: number }) {
-  const lit = Math.round(progress * PROGRESS_CELLS)
-  return (
-    <div className="flex gap-[3px]" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100} title="progress through this song">
-      {Array.from({ length: PROGRESS_CELLS }, (_, i) => (
-        <span
-          key={i}
-          className="w-[7px] h-[7px] transition-colors duration-300"
-          style={{
-            backgroundColor:
-              i < lit
-                ? PROGRESS_RAMP[Math.min(PROGRESS_RAMP.length - 1, Math.floor((i / PROGRESS_CELLS) * PROGRESS_RAMP.length))]
-                : '#e2e7f2',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
+// LED accent dots on the start screen — the visualizer's `spectrum` heat ramp.
+const LED_RAMP = ['#d98e1f', '#f0a02e', '#f25c1f', '#de1a1a', '#b3123f', '#ff2e92']
 
 // The queue list is memoized so the 4Hz progress tick (which re-renders BeatsPlayer)
 // doesn't re-render up to 500 rows — this only re-renders when the queue or the
@@ -307,6 +285,11 @@ export default function BeatsPlayer() {
     }
   }, [setPausedFlag])
 
+  // Step back to the previous track — no wrap-around: disabled on the queue's first song.
+  const playPrev = useCallback(() => {
+    if (idxRef.current > 0) void playAt(idxRef.current - 1)
+  }, [playAt])
+
   // Restart the current track from the top: replaying the current index re-evaluates
   // (stop -> start), which resets Strudel's scheduler to cycle 0, resets our advance
   // clock, and resumes if paused — exactly playAt's contract. Warmup/viz re-sets are no-ops.
@@ -435,7 +418,7 @@ export default function BeatsPlayer() {
       {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
       <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-[#acbed8] z-30">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="font-display font-black tracking-[0.2em] text-lg uppercase leading-none">beats</span>
+          <span className="font-bold tracking-[0.25em] text-sm uppercase leading-none">beats</span>
           {started && (
             <span
               className={`flex items-center gap-1.5 border px-2 h-6 text-[10px] uppercase tracking-[0.2em] ${
@@ -486,57 +469,77 @@ export default function BeatsPlayer() {
 
       {/* now playing — the centered marquee under the stage */}
       {started && (
-        <section className="shrink-0 flex flex-col items-center text-center gap-3 px-6 pt-5 pb-6 border-t border-[#acbed8] bg-white/90 backdrop-blur-sm">
-          {nowPlaying ? (
-            <>
-              <div className="text-[10px] uppercase tracking-[0.3em] text-[#8595b5]">
-                now playing
-                {nowPlaying.id != null && (
-                  <a
-                    href={`?song=${nowPlaying.id}`}
-                    title="Permalink — opens the radio starting on this song"
-                    className="ml-2 text-[#acbed8] hover:text-[#de1a1a] transition"
-                  >
-                    [#{nowPlaying.id}]
-                  </a>
+        <section className="shrink-0 border-t border-[#acbed8] bg-white/90 backdrop-blur-sm">
+          {/* song progress — full width, directly under the visualizer */}
+          <div className="h-[4px] bg-[#eef1f8]" title="progress through this song">
+            <div
+              className="h-full bg-[#de1a1a] transition-[width] duration-300 ease-linear"
+              style={{ width: `${progress * 100}%` }}
+            />
+          </div>
+          <div className="flex flex-col items-center text-center gap-3 px-6 pt-4 pb-6">
+            {nowPlaying ? (
+              <>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-[#8595b5]">
+                  now playing
+                  {nowPlaying.id != null && (
+                    <a
+                      href={`?song=${nowPlaying.id}`}
+                      title="Permalink — opens the radio starting on this song"
+                      className="ml-2 text-[#acbed8] hover:text-[#de1a1a] transition"
+                    >
+                      [#{nowPlaying.id}]
+                    </a>
+                  )}
+                </div>
+                <h1 className="font-bold text-2xl sm:text-4xl leading-tight max-w-full break-words line-clamp-2 sm:line-clamp-1 px-2">
+                  {nowPlaying.title ?? '(untitled)'}
+                </h1>
+                <div className="truncate max-w-full text-xs text-[#8595b5]">
+                  {[nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · ')}
+                </div>
+                {(nowPlaying.author || nowPlaying.model) && (
+                  <div className="truncate max-w-full text-[11px] text-[#acbed8]">
+                    {[nowPlaying.author ? `by ${nowPlaying.author}` : null, nowPlaying.model]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
                 )}
+                <div className="flex items-center gap-3 mt-1">
+                  <button onClick={() => playPrev()} disabled={currentIdx <= 0} title="Previous song" className={DECK_BTN}>
+                    ⏮
+                  </button>
+                  <button onClick={() => void restartSong()} disabled={!nowPlaying} title="Restart this song" className={DECK_BTN}>
+                    ↻
+                  </button>
+                  <button
+                    onClick={() => void togglePause()}
+                    disabled={!nowPlaying}
+                    title={paused ? 'Play' : 'Pause'}
+                    className={DECK_BTN}
+                  >
+                    {paused ? '▶' : '⏸'}
+                  </button>
+                  <button onClick={() => void advance()} disabled={!nowPlaying} title="Next song" className={DECK_BTN}>
+                    ⏭
+                  </button>
+                </div>
+                {upNext && (
+                  <button
+                    onClick={() => void advance()}
+                    title="Skip to this song"
+                    className="max-w-full truncate text-[11px] text-[#8595b5] hover:text-[#de1a1a] transition"
+                  >
+                    up next: <span className="font-semibold">{upNext.title ?? '(untitled)'}</span> ⏭
+                  </button>
+                )}
+              </>
+            ) : (
+              <div className="py-6 text-sm text-[#8595b5]">
+                waiting for the first track — run <code>/beats &lt;theme&gt;</code>
               </div>
-              <h1 className="font-display font-black text-4xl sm:text-6xl leading-none max-w-full break-words line-clamp-2 sm:line-clamp-1 px-2">
-                {nowPlaying.title ?? '(untitled)'}
-              </h1>
-              <div className="truncate max-w-full text-xs text-[#8595b5]">{subtitle(nowPlaying)}</div>
-              <ProgressLeds progress={progress} />
-              <div className="flex items-center gap-3 mt-1">
-                <button onClick={() => void restartSong()} disabled={!nowPlaying} title="Restart this song" className={`${DECK_BTN} w-11 h-11 text-base`}>
-                  ↻
-                </button>
-                <button
-                  onClick={() => void togglePause()}
-                  disabled={!nowPlaying}
-                  title={paused ? 'Play' : 'Pause'}
-                  className={`${DECK_BTN} w-14 h-14 text-xl`}
-                >
-                  {paused ? '▶' : '⏸'}
-                </button>
-                <button onClick={() => void advance()} disabled={!nowPlaying} title="Next song" className={`${DECK_BTN} w-11 h-11 text-base`}>
-                  ⏭
-                </button>
-              </div>
-              {upNext && (
-                <button
-                  onClick={() => void advance()}
-                  title="Skip to this song"
-                  className="max-w-full truncate text-[11px] text-[#8595b5] hover:text-[#de1a1a] transition"
-                >
-                  up next: <span className="font-semibold">{upNext.title ?? '(untitled)'}</span> ⏭
-                </button>
-              )}
-            </>
-          ) : (
-            <div className="py-6 text-sm text-[#8595b5]">
-              waiting for the first track — run <code>/beats &lt;theme&gt;</code>
-            </div>
-          )}
+            )}
+          </div>
         </section>
       )}
 
@@ -587,9 +590,9 @@ export default function BeatsPlayer() {
           and triggers the lazy engine chunk's download + mount */}
       {!started && (
         <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-5" style={PAGE_BG}>
-          <div className="font-display font-black text-6xl sm:text-7xl uppercase tracking-[0.15em] leading-none">beats</div>
+          <div className="font-bold text-4xl sm:text-5xl uppercase tracking-[0.2em] leading-none">beats</div>
           <div aria-hidden className="flex gap-[3px]">
-            {PROGRESS_RAMP.map((c) => (
+            {LED_RAMP.map((c) => (
               <span key={c} className="w-[7px] h-[7px]" style={{ backgroundColor: c }} />
             ))}
           </div>
