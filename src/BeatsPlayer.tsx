@@ -1,10 +1,9 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Visualizer } from './components'
+import { Visualizer, EngineLoading } from './components'
 import type { StrudelAdapter } from './components'
 import type { BeatsSong } from './types'
 
-// lazy so the Strudel/CodeMirror graph (>500kB) only downloads on the Start click; must
-// import the file directly — the barrel would eagerly pull the module into the main chunk
+// lazy so the Strudel/CodeMirror graph (>500kB) only downloads on the Start click
 const StrudelHost = lazy(() => import('./components/StrudelHost'))
 
 // /?song=<id> permalink — read once at load; playback starts on that song if it's in
@@ -123,8 +122,7 @@ export default function BeatsPlayer() {
   const [vizNode, setVizNode] = useState<AudioNode | null>(null)
   // mobile: the engine panel is a bottom drawer (closed by default) so the queue gets
   // the screen; on lg+ it's always the open side panel. Once mounted (on Start) the
-  // engine stays MOUNTED either way — StrudelHost owns the audio pipeline and must
-  // never unmount; gating on `started` is safe because started never goes back to false.
+  // engine must never unmount — it owns the audio pipeline; `started` never reverts.
   const [engineOpen, setEngineOpen] = useState(false)
 
   const adapterRef = useRef<StrudelAdapter | null>(null)
@@ -137,10 +135,8 @@ export default function BeatsPlayer() {
   const cpsRef = useRef(0.5)
   // between-tracks gap state: truthy while the auto-advance pause is in flight
   const gapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // playAt races with itself (awaits inside; callers include the 250ms interval, queue
-  // clicks, next/restart): the seq token lets every new call supersede the in-flight
-  // one — stale calls bail after each await instead of blocking newer ones, so a manual
-  // pick can always override an in-flight auto-advance
+  // playAt awaits internally and has multiple callers — the seq token lets a newer call
+  // supersede an in-flight one (manual picks always win over auto-advance)
   const playSeqRef = useRef(0)
   const playInFlightRef = useRef(false)
 
@@ -204,9 +200,7 @@ export default function BeatsPlayer() {
       if (playSeqRef.current !== seq) return // superseded mid-run: the newer call owns the engine
       setIndex(index)
       setProgress(0)
-      // the live scheduler knows the real tempo once run() has evaluated the song's
-      // setcps(); the regex parse is only the fallback when it can't report one
-      cpsRef.current = adapter.getCps() ?? parseCps(song.code)
+      cpsRef.current = adapter.getCps() ?? parseCps(song.code) // regex parse = fallback only
       startTimeRef.current = ctx ? ctx.currentTime : 0
       if (ctx) setVizCtx(ctx)
       const out = adapter.getOutputNode()
@@ -215,8 +209,7 @@ export default function BeatsPlayer() {
       const upNext = queueRef.current[(index + 1) % queueRef.current.length]
       if (upNext && upNext !== song) adapter.warmup(upNext.code)
     } finally {
-      // superseded calls leave the flag to the call that superseded them
-      if (playSeqRef.current === seq) playInFlightRef.current = false
+      if (playSeqRef.current === seq) playInFlightRef.current = false // superseded calls leave the flag to the winner
     }
   }, [setIndex, setPausedFlag])
 
@@ -240,10 +233,8 @@ export default function BeatsPlayer() {
       void adapterRef.current?.stop()
       gapTimerRef.current = setTimeout(() => {
         gapTimerRef.current = null
-        // pause pressed during the gap: advancing would resume the ctx (playAt always
-        // resumes), un-pausing without user intent. Bail instead — ctx.currentTime is
-        // frozen while suspended, so the 250ms interval's cyclesElapsed stays past
-        // target and it re-arms this advance once the user resumes.
+        // paused during the gap: bail rather than un-pause; the interval re-arms this
+        // advance after resume (cyclesElapsed stays past target while suspended)
         if (pausedRef.current) return
         void advance()
       }, TRACK_GAP_MS)
@@ -480,9 +471,7 @@ export default function BeatsPlayer() {
           <QueueList queue={queue} currentIdx={currentIdx} started={started} onPick={playAt} />
         </section>
 
-        {/* Strudel engine — code-split behind the Start click (>500kB with CodeMirror),
-            then kept mounted forever: `started` never reverts to false, so the audio
-            pipeline the host owns can never be torn down by an unmount.
+        {/* Strudel engine — code-split behind the Start click, then mounted forever.
             On mobile it collapses to its header bar; tapping toggles the drawer. */}
         <section
           className={`${engineOpen ? 'h-56' : 'h-9'} lg:h-auto lg:flex-1 min-h-0 flex flex-col overflow-hidden transition-[height] duration-200`}
@@ -496,18 +485,9 @@ export default function BeatsPlayer() {
             <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">engine</span>
             <span aria-hidden className="lg:hidden text-[11px] text-[#8595b5]">{engineOpen ? '▾' : '▴'}</span>
           </button>
-          <div className="flex-1 min-h-0 bg-white/85">
+          <div className="relative flex-1 min-h-0 bg-white/85">
             {started && (
-              <Suspense
-                fallback={
-                  <div className="h-full flex items-center justify-center bg-white/80">
-                    <div className="text-[#acbed8] text-sm flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#de1a1a] animate-pulse" />
-                      loading strudel...
-                    </div>
-                  </div>
-                }
-              >
+              <Suspense fallback={<EngineLoading />}>
                 <StrudelHost onReady={onReady} onPlayingChange={setPlaying} />
               </Suspense>
             )}

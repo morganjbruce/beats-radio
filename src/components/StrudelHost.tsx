@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState } from "react";
+import { EngineLoading } from "./EngineLoading";
 import {
   SAMPLE_MANIFESTS,
   CUSTOM_SAMPLE_MAPS,
@@ -14,8 +15,7 @@ export interface StrudelAdapter {
   stop: () => Promise<void>;
   getAudioContext: () => AudioContext | null;
   getOutputNode: () => AudioNode | null;
-  /** The live scheduler's cycles-per-second — the real tempo after the song's setcps()
-   *  ran, so only meaningful once run() has resolved. Null until then / if unavailable. */
+  /** The scheduler's live cps — only meaningful after run() has resolved. */
   getCps: () => number | null;
   /** Fire inaudible triggers for every sound a song uses so its sample buffers are
    *  fetched & cached BEFORE they're needed (samples otherwise load lazily on first hit). */
@@ -72,7 +72,6 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
     const superdoughRef = useRef<SuperdoughFn | null>(null);
     const resetGlobalEffectsRef = useRef<(() => void) | null>(null);
     const outputGainNodeRef = useRef<GainNode | null>(null);
-    const rerouteOutputRef = useRef<(() => void) | null>(null);
     const [loading, setLoading] = useState(true);
     const [playing, setPlaying] = useState(false);
     const onReadyCalledRef = useRef(false);
@@ -138,19 +137,16 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
             ]);
           const { getAudioContext, webaudioOutput, initAudioOnFirstClick, registerSynthSounds, samples, registerSound, soundMap, superdough } = webaudioModule;
           superdoughRef.current = superdough as unknown as SuperdoughFn;
-          // re-exported from superdough at runtime but missing from the inferred types
-          resetGlobalEffectsRef.current = (webaudioModule as unknown as { resetGlobalEffects?: () => void }).resetGlobalEffects ?? null;
-          const { getSuperdoughAudioController, initAudio } = webaudioModule as unknown as {
+          const { getSuperdoughAudioController, initAudio, resetGlobalEffects } = webaudioModule as unknown as {
             getSuperdoughAudioController: () => { output: { destinationGain: GainNode } };
             initAudio: () => Promise<void>;
+            resetGlobalEffects?: () => void; // re-exported from superdough, missing from inferred types
           };
 
-          // Store the audio context getter for recording
           audioContextGetterRef.current = getAudioContext;
 
-          // Master tap between superdough's output and the speakers: the visualizer reads
-          // it (getOutputNode) and adapter.run() fades it — that fade is the ghost-audio
-          // fix, so every voice must pass through this node.
+          // Master tap between superdough's output and the speakers: the visualizer reads it
+          // (getOutputNode) and adapter.run() fades it (the ghost-audio fix).
           const ctx = getAudioContext();
           if (ctx && !outputGainNodeRef.current) {
             const gainNode = ctx.createGain();
@@ -159,11 +155,8 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
             outputGainNodeRef.current = gainNode;
           }
 
-          // superdough funnels every orbit through a single destinationGain
-          // (superdoughoutput.mjs) — re-pointing that one node at the tap replaces the
-          // old page-wide AudioNode.prototype.connect monkey-patch. resetGlobalEffects()
-          // rebuilds destinationGain wired straight to ctx.destination, so adapter.run()
-          // must re-apply this after every reset.
+          // superdough routes every orbit through one destinationGain; pointing it at the
+          // tap replaces the old page-wide connect() monkey-patch.
           const routeThroughTap = () => {
             const tap = outputGainNodeRef.current;
             if (!tap) return;
@@ -176,15 +169,18 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
             }
           };
           routeThroughTap();
-          rerouteOutputRef.current = routeThroughTap;
+          // resetGlobalEffects rebuilds destinationGain wired straight to the speakers, so
+          // every reset must re-route — composed here so no call site can forget it.
+          resetGlobalEffectsRef.current = resetGlobalEffects
+            ? () => {
+                resetGlobalEffects();
+                routeThroughTap();
+              }
+            : null;
 
-          // The engine now lazy-mounts AFTER the Start click, so initAudioOnFirstClick's
-          // mousedown listener would only fire on a SECOND click. The Start click's sticky
-          // activation still permits resume, so init (resume + worklets) directly here —
-          // best-effort; playAt's explicit ctx.resume() covers browsers that defer.
-          void Promise.resolve()
-            .then(() => initAudio())
-            .catch(() => {});
+          // Lazy-mounted post-Start-click, so initAudioOnFirstClick would need a SECOND
+          // click; init directly instead (playAt's ctx.resume() is the backstop).
+          void initAudio().catch(() => {});
 
           if (isCleanedUp) return;
 
@@ -348,9 +344,6 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
                   await new Promise(resolve => setTimeout(resolve, 100));
                 }
                 resetGlobalEffectsRef.current?.();
-                // the reset rebuilt superdough's output wired straight to the speakers,
-                // bypassing the tap — re-route before fading back in
-                rerouteOutputRef.current?.();
                 if (ctx && gain) {
                   gain.cancelScheduledValues(ctx.currentTime);
                   gain.setValueAtTime(0, ctx.currentTime);
@@ -411,15 +404,7 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
         ref={wrapperRef}
         className="h-full w-full min-h-0 min-w-0 relative strudel-container flex flex-col"
       >
-        {/* Loading state */}
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
-            <div className="text-[#acbed8] text-sm flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#de1a1a] animate-pulse" />
-              loading strudel...
-            </div>
-          </div>
-        )}
+        {loading && <EngineLoading />}
 
         {/* Editor container */}
         <div

@@ -32,3 +32,6 @@ PLAN-*
 
 # beats radio runtime (composer writes the working song artifact here)
 .beats/
+
+# local agent worktrees/session state
+.claude/

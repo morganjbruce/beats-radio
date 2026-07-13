@@ -1,37 +1,5 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test'
-import { mkdtempSync, rmSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import type { AddressInfo } from 'node:net'
-import type { Server } from 'node:http'
-import { startServer } from './index'
-
-// Each group boots the real server on an ephemeral port with a throwaway state dir, so tests
-// exercise the actual express + bun:sqlite stack rather than mocks.
-function boot(): { server: Server; dir: string; url: string } {
-  const dir = mkdtempSync(join(tmpdir(), 'beats-test-'))
-  const server = startServer({ port: 0, stateDir: dir }) as unknown as Server
-  const { port } = server.address() as AddressInfo
-  return { server, dir, url: `http://localhost:${port}` }
-}
-
-function shutdown(ctx: { server: Server; dir: string }): Promise<void> {
-  return new Promise((resolve) => {
-    // close() alone waits for lingering keep-alive/SSE sockets and would hang the hook
-    ctx.server.closeAllConnections?.()
-    ctx.server.close(() => {
-      rmSync(ctx.dir, { recursive: true, force: true })
-      resolve()
-    })
-  })
-}
-
-const postSong = (url: string, body: unknown, headers: Record<string, string> = {}) =>
-  fetch(`${url}/api/beats`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body),
-  })
+import { boot, shutdown, postSong } from './test-helpers'
 
 describe('api (no auth)', () => {
   let ctx: ReturnType<typeof boot>
@@ -58,12 +26,13 @@ describe('api (no auth)', () => {
     expect(res.status).toBe(400)
   })
 
-  test('POST /api/beats returns 400 (not 500) for a non-string title', async () => {
-    const res = await postSong(ctx.url, { title: {}, code: 's("bd")' })
-    expect(res.status).toBe(400)
-    // must be a deliberate JSON error, not an express stack dump
-    const body = (await res.json()) as { error: string }
-    expect(typeof body.error).toBe('string')
+  test('POST /api/beats drops a non-string title instead of erroring', async () => {
+    const res = await postSong(ctx.url, { title: {}, code: 's("bd sd")' })
+    expect(res.status).toBe(200)
+    const history = (await (await fetch(`${ctx.url}/api/beats/history`)).json()) as { code: string; title: string | null }[]
+    const song = history.find((s) => s.code === 's("bd sd")')
+    expect(song).toBeDefined()
+    expect(song!.title).toBeNull()
   })
 
   test('POST /api/beats drops a negative cycles so the player default applies', async () => {

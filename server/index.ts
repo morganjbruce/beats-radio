@@ -112,8 +112,7 @@ export function startServer(opts?: StartServerOptions) {
 
   const beatsClients = new Set<Response>()
 
-  // A single broken socket must never abort fan-out to the rest, so every write is guarded;
-  // a client that throws is evicted and its response torn down.
+  // Guarded write: a throwing client is evicted so one broken socket can't abort fan-out.
   function writeTo(client: Response, payload: string): void {
     try {
       client.write(payload)
@@ -129,9 +128,7 @@ export function startServer(opts?: StartServerOptions) {
     for (const client of beatsClients) writeTo(client, payload)
   }
 
-  // Proxies (fly.io) drop idle streams while the server still counts them as listeners; a
-  // periodic SSE comment keeps connections alive and flushes out dead sockets. unref() so a
-  // closed server doesn't stay pinned in the event loop by this timer.
+  // Heartbeat keeps idle streams alive through proxies (fly) and flushes out dead sockets.
   const heartbeat = setInterval(() => {
     for (const client of beatsClients) writeTo(client, ': ping\n\n')
   }, 25_000)
@@ -143,38 +140,23 @@ export function startServer(opts?: StartServerOptions) {
       res.status(400).json({ error: 'a non-empty "code" string is required' })
       return
     }
-    // Present-but-mistyped metadata is a caller bug worth surfacing as a 400 — before str()
-    // below, a non-string here reached the SQLite bind raw and threw an uncaught 500.
-    for (const [key, value] of Object.entries({ title, genre, mood })) {
-      if (value != null && typeof value !== 'string') {
-        res.status(400).json({ error: `"${key}" must be a string` })
-        return
-      }
-    }
-    // A non-positive cycles would make the player insta-skip every track, so anything outside
-    // 1..10000 falls back to undefined and the player default applies.
-    const cyclesNum = Math.trunc(Number(cycles))
+    // One shaping policy for every optional field: str() drops non-strings (so nothing
+    // mistyped reaches the SQLite bind), cycles must be a positive int or the player
+    // default applies (a negative would make the radio insta-skip every track).
     // `prompt` is stored for later analysis but never sent to clients, so it stays a local
     // (below) rather than a field on `song` — the song object IS the SSE/history payload.
-    // All free-text fields go through str(): a non-string body value must become a 400, not an
-    // uncaught SQLite bind error. genre/mood are rich liner notes, hence the generous maxes.
+    const cyclesNum = Math.trunc(Number(cycles))
     const song: BeatsSong = {
       title: str(title, 200), genre: str(genre, 300), mood: str(mood, 1000),
       author: str(author, 40), model: str(model, 60),
       cycles: cyclesNum >= 1 && cyclesNum <= 10000 ? cyclesNum : undefined, code,
     }
 
-    // Last line of defence: anything the shaping above missed becomes a JSON 400, not a stack.
-    try {
-      const inserted = insertSong.run(
-        Date.now(), song.title ?? null, song.genre ?? null, song.mood ?? null,
-        song.author ?? null, song.model ?? null, str(prompt, 8000) ?? null, song.cycles ?? null, song.code,
-      )
-      song.id = Number(inserted.lastInsertRowid)
-    } catch {
-      res.status(400).json({ error: 'invalid song payload' })
-      return
-    }
+    const inserted = insertSong.run(
+      Date.now(), song.title ?? null, song.genre ?? null, song.mood ?? null,
+      song.author ?? null, song.model ?? null, str(prompt, 8000) ?? null, song.cycles ?? null, song.code,
+    )
+    song.id = Number(inserted.lastInsertRowid)
 
     // The DB is the source of truth (the player seeds its playlist from /api/beats/history);
     // SSE only pushes this newly-posted song so connected tabs can append it live.
@@ -213,7 +195,7 @@ export function startServer(opts?: StartServerOptions) {
     res.write(sseEvent('hello', {}))
     beatsClients.add(res)
     req.on('close', () => beatsClients.delete(res))
-    // an errored stream would otherwise crash the process (unhandled 'error') and linger in the set
+    // unhandled 'error' on the stream would crash the process
     res.on('error', () => {
       beatsClients.delete(res)
       res.destroy()
