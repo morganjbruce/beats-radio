@@ -1,11 +1,11 @@
 // Fixture: rule 5 — a variable interpolated into a mini-notation template literal.
-// The rule checks the RAW source (a resolved code string has already lost the
-// `\${...}`), so the offending literal lives at the artifact's top level; the
-// static gate never executes it.
+// The rule checks the RAW source, so the offending literal lives at the artifact's
+// top level (behind a stub so the file still imports cleanly).
 export const title = 'Interpolated Mini-Notation'
 export const cycles = 4
-const root = 'c3'
-export const lead = note(`${root} e3 g3 e3`)
+const stub = { struct: (x) => x }
+const rhythm = 'x ~ x ~'
+export const lead = stub.struct(`${rhythm} x x`)
 export const code = `
 setcps(0.5)
 stack(

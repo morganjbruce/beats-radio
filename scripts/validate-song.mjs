@@ -10,9 +10,9 @@
 // Prints `OK ...` and exits 0 when clean; prints each problem and exits 1 otherwise.
 //
 // This is the ONE source of truth for song validation — never re-author it inline.
-import { loadArtifactStatic } from './_artifact.mjs'
+import { loadArtifact } from './_artifact.mjs'
 
-const { code, raw } = loadArtifactStatic('usage: bun scripts/validate-song.mjs <artifact.mjs>')
+const { code, raw } = await loadArtifact('usage: bun scripts/validate-song.mjs <artifact.mjs>')
 
 const reserved = ['m', 'n', 's', 'note', 'stack', 'sound', 'slowcat']
 const problems = []

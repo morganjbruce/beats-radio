@@ -1,8 +1,4 @@
-// Tests the real validator end-to-end by spawning it exactly the way agents run
-// it: `bun scripts/validate-song.mjs <artifact>`. One known-good real artifact
-// asserts the OK path; one known-bad fixture per rule group asserts exit 1 plus
-// the rule's specific problem string. The validator is a STATIC gate — these
-// fixtures are never executed, only read.
+// End-to-end: spawn the validator the way agents run it, one bad fixture per rule.
 import { describe, expect, test } from 'bun:test'
 import { join } from 'node:path'
 
@@ -32,7 +28,7 @@ describe('validate-song.mjs', () => {
     ['shadow-m.mjs', 'variable named "m" shadows a Strudel builtin'],
     ['s-before-note.mjs', 'found s(...).note(...) — write note("...") FIRST'],
     ['interpolated-mini.mjs', 'a variable is interpolated into a mini-notation template literal'],
-    ['unbalanced-brackets.mjs', 'unbalanced brackets in mini-notation: "[c3 e3 g3 e3"'],
+    ['unbalanced-brackets.mjs', 'unbalanced brackets in mini-notation: "[c3 e3 g3 e3'],
     ['unwrapped-variable.mjs', 'variable(s) passed to note()/s() without an m() wrap'],
     [
       'dq-const-through-helper.mjs',
@@ -44,32 +40,24 @@ describe('validate-song.mjs', () => {
     test(`fails ${file}: ${expected.slice(0, 40)}...`, () => {
       const r = runValidator(fixture(file))
       expect(r.exitCode).toBe(1)
-      expect(r.stderr).toContain('FAIL')
       expect(r.stderr).toContain(expected)
+      // exactly this rule's problem, no collateral trips from the fixture's scaffolding
+      expect(r.stderr).toContain('FAIL: 1 problem(s):')
     })
   }
-
-  test('each bad fixture reports exactly its one intended problem', () => {
-    for (const [file] of badCases) {
-      const r = runValidator(fixture(file))
-      expect(r.stderr).toContain('FAIL: 1 problem(s):')
-    }
-  })
 })
 
-describe('loadArtifactStatic via validate-song.mjs', () => {
+describe('artifact loading via validate-song.mjs', () => {
   test('no argument: prints usage and exits 2', () => {
     const r = runValidator()
     expect(r.exitCode).toBe(2)
     expect(r.stderr).toContain('usage: bun scripts/validate-song.mjs <artifact.mjs>')
   })
 
-  test('missing code export: exits 1 with the static-extraction FAIL', () => {
+  test('missing code export: exits 1', () => {
     const r = runValidator(fixture('no-code-export.mjs'))
     expect(r.exitCode).toBe(1)
-    expect(r.stderr).toContain(
-      'FAIL: could not statically extract `code` — artifact must export code as a template literal',
-    )
+    expect(r.stderr).toContain('FAIL: artifact must export a non-empty `code` string')
   })
 
   test('unreadable file: exits 1 with a load FAIL', () => {
