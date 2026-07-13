@@ -152,8 +152,22 @@ export default function BeatsPlayer() {
   const playInFlightRef = useRef(false)
 
   const nowPlaying = queue[currentIdx] ?? null
-  // the wrap-around next track, for the "up next" line (hidden for single-song queues)
-  const upNext = currentIdx >= 0 && queue.length > 1 ? queue[(currentIdx + 1) % queue.length] : null
+  // brief "copied!" confirmation after the share link is used
+  const [shared, setShared] = useState(false)
+
+  // Copy a permalink to the current song to the clipboard; fall back to navigating to
+  // the permalink if the Clipboard API is unavailable (e.g. non-secure context).
+  const shareSong = useCallback(async () => {
+    if (nowPlaying?.id == null) return
+    const url = `${window.location.origin}${window.location.pathname}?song=${nowPlaying.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      setShared(true)
+      setTimeout(() => setShared(false), 1600)
+    } catch {
+      window.location.href = `?song=${nowPlaying.id}`
+    }
+  }, [nowPlaying])
 
   // Escape closes whichever drawers are open
   useEffect(() => {
@@ -444,10 +458,10 @@ export default function BeatsPlayer() {
           <button
             onClick={() => setEngineOpen((o) => !o)}
             aria-expanded={engineOpen}
-            title="Show/hide the live-code engine"
+            title="Show/hide the live Strudel code"
             className={`${CHIP_BTN} ${engineOpen ? 'border-[#de1a1a] text-[#de1a1a] bg-white' : 'border-[#acbed8] text-[#8595b5] hover:border-[#de1a1a] hover:text-[#de1a1a]'}`}
           >
-            engine
+            strudel
           </button>
         </div>
       </header>
@@ -480,22 +494,10 @@ export default function BeatsPlayer() {
           <div className="flex flex-col items-center text-center gap-3 px-6 pt-4 pb-6">
             {nowPlaying ? (
               <>
-                <div className="text-[10px] uppercase tracking-[0.3em] text-[#8595b5]">
-                  now playing
-                  {nowPlaying.id != null && (
-                    <a
-                      href={`?song=${nowPlaying.id}`}
-                      title="Permalink — opens the radio starting on this song"
-                      className="ml-2 text-[#acbed8] hover:text-[#de1a1a] transition"
-                    >
-                      [#{nowPlaying.id}]
-                    </a>
-                  )}
-                </div>
-                <h1 className="font-bold text-2xl sm:text-4xl leading-tight max-w-full break-words line-clamp-2 sm:line-clamp-1 px-2">
+                <h1 className="font-song font-normal text-3xl sm:text-5xl leading-tight max-w-full break-words line-clamp-2 sm:line-clamp-1 px-2">
                   {nowPlaying.title ?? '(untitled)'}
                 </h1>
-                <div className="truncate max-w-full text-xs text-[#8595b5]">
+                <div className="max-w-2xl text-xs text-[#8595b5] text-balance line-clamp-2">
                   {[nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · ')}
                 </div>
                 {(nowPlaying.author || nowPlaying.model) && (
@@ -524,13 +526,13 @@ export default function BeatsPlayer() {
                     ⏭
                   </button>
                 </div>
-                {upNext && (
+                {nowPlaying.id != null && (
                   <button
-                    onClick={() => void advance()}
-                    title="Skip to this song"
-                    className="max-w-full truncate text-[11px] text-[#8595b5] hover:text-[#de1a1a] transition"
+                    onClick={() => void shareSong()}
+                    title="Copy a link to this song"
+                    className="text-[11px] uppercase tracking-[0.2em] text-[#8595b5] hover:text-[#de1a1a] transition"
                   >
-                    up next: <span className="font-semibold">{upNext.title ?? '(untitled)'}</span> ⏭
+                    {shared ? '✓ link copied' : '↗ share song'}
                   </button>
                 )}
               </>
@@ -572,8 +574,8 @@ export default function BeatsPlayer() {
         }`}
       >
         <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-[#dbe2ef]">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">engine — live strudel code</span>
-          <button onClick={() => setEngineOpen(false)} title="Close the engine" className="text-[#8595b5] hover:text-[#de1a1a] transition text-sm leading-none">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">strudel</span>
+          <button onClick={() => setEngineOpen(false)} title="Close Strudel" className="text-[#8595b5] hover:text-[#de1a1a] transition text-sm leading-none">
             ✕
           </button>
         </div>

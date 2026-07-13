@@ -25,6 +25,11 @@ body {
   overflow: hidden;
 }
 
+/* Now-playing song title — pixel-grid display face over the LED-matrix visualizer */
+.font-song {
+  font-family: 'Bitcount Grid Double', 'IBM Plex Mono', monospace;
+}
+
 /* ON AIR lamp: hard on/off like a real studio sign, not a smooth pulse */
 @keyframes led-blink {
   0%, 55% { opacity: 1; }
