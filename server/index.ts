@@ -45,7 +45,10 @@ export function startServer(opts?: StartServerOptions) {
 
   const app = express()
 
-  app.use(cors())
+  // BEATS_CORS_ORIGIN (comma-separated origins) restricts CORS when deployed; unset stays
+  // permissive so local dev needs zero config.
+  const corsOrigins = process.env.BEATS_CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean)
+  app.use(corsOrigins?.length ? cors({ origin: corsOrigins }) : cors())
   app.use(express.json())
 
   // --- auth ---
@@ -109,11 +112,27 @@ export function startServer(opts?: StartServerOptions) {
 
   const beatsClients = new Set<Response>()
 
+  // Guarded write: a throwing client is evicted so one broken socket can't abort fan-out.
+  function writeTo(client: Response, payload: string): void {
+    try {
+      client.write(payload)
+    } catch {
+      beatsClients.delete(client)
+      client.destroy()
+    }
+  }
+
   // SSE fan-out to every connected player.
   function broadcast(event: string, data: unknown): void {
     const payload = sseEvent(event, data)
-    for (const client of beatsClients) client.write(payload)
+    for (const client of beatsClients) writeTo(client, payload)
   }
+
+  // Heartbeat keeps idle streams alive through proxies (fly) and flushes out dead sockets.
+  const heartbeat = setInterval(() => {
+    for (const client of beatsClients) writeTo(client, ': ping\n\n')
+  }, 25_000)
+  heartbeat.unref()
 
   app.post('/api/beats', (req, res) => {
     const { title, genre, mood, author, model, prompt, cycles, code } = req.body ?? {}
@@ -121,9 +140,17 @@ export function startServer(opts?: StartServerOptions) {
       res.status(400).json({ error: 'a non-empty "code" string is required' })
       return
     }
+    // One shaping policy for every optional field: str() drops non-strings (so nothing
+    // mistyped reaches the SQLite bind), cycles must be a positive int or the player
+    // default applies (a negative would make the radio insta-skip every track).
     // `prompt` is stored for later analysis but never sent to clients, so it stays a local
     // (below) rather than a field on `song` — the song object IS the SSE/history payload.
-    const song: BeatsSong = { title, genre, mood, author: str(author, 40), model: str(model, 60), cycles: Number(cycles) || undefined, code }
+    const cyclesNum = Math.trunc(Number(cycles))
+    const song: BeatsSong = {
+      title: str(title, 200), genre: str(genre, 300), mood: str(mood, 1000),
+      author: str(author, 40), model: str(model, 60),
+      cycles: cyclesNum >= 1 && cyclesNum <= 10000 ? cyclesNum : undefined, code,
+    }
 
     const inserted = insertSong.run(
       Date.now(), song.title ?? null, song.genre ?? null, song.mood ?? null,
@@ -157,7 +184,9 @@ export function startServer(opts?: StartServerOptions) {
 
   // The full library (most recent first) — the player seeds its looping playlist from this.
   app.get('/api/beats/history', (req, res) => {
-    const limit = Math.min(Number(req.query.limit) || 100, 500)
+    // SQLite treats LIMIT -1 as "no limit", so the clamp must bound both ends; garbage → 100.
+    const requested = Math.trunc(Number(req.query.limit))
+    const limit = Number.isFinite(requested) && requested !== 0 ? Math.min(Math.max(requested, 1), 500) : 100
     res.json(recentSongs.all(limit))
   })
 
@@ -166,6 +195,11 @@ export function startServer(opts?: StartServerOptions) {
     res.write(sseEvent('hello', {}))
     beatsClients.add(res)
     req.on('close', () => beatsClients.delete(res))
+    // unhandled 'error' on the stream would crash the process
+    res.on('error', () => {
+      beatsClients.delete(res)
+      res.destroy()
+    })
   })
 
   // --- static frontend (deployed mode) ---
@@ -183,9 +217,12 @@ export function startServer(opts?: StartServerOptions) {
     })
   }
 
-  return app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`)
   })
+  // belt-and-braces alongside unref(): tests start/stop many servers in one process
+  server.on('close', () => clearInterval(heartbeat))
+  return server
 }
 
 // Run directly (repo dev via `bun --watch server/index.ts`, Dockerfile CMD `bun server/index.ts`).
