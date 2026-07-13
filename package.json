@@ -30,6 +30,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "bun test",
     "validate": "bun scripts/validate-song.mjs",
     "prepublishOnly": "bun run build"
   },
