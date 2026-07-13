@@ -51,11 +51,42 @@ const FINE_GRID: CSSProperties = {
   WebkitMaskImage: 'linear-gradient(to bottom, black 55%, transparent 100%)',
 }
 
+// Transport buttons: square (matching the pixel grid), with a small lift on hover so
+// they feel pressable rather than clinical.
 const DECK_BTN =
-  'w-10 h-10 shrink-0 border border-[#acbed8] bg-white text-base leading-none transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] disabled:opacity-40'
+  'shrink-0 border border-[#acbed8] bg-white leading-none transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] enabled:hover:-translate-y-0.5 enabled:active:translate-y-0 disabled:opacity-40'
+
+// Header chips that open the queue/engine drawers.
+const CHIP_BTN =
+  'h-7 px-2.5 flex items-center gap-1.5 border text-[10px] uppercase tracking-[0.2em] transition'
 
 const subtitle = (s: BeatsSong) =>
   [s.author ? `by ${s.author}` : null, s.genre, s.mood].filter(Boolean).join(' · ')
+
+// Song progress as a strip of LED cells lit through the visualizer's own heat ramp
+// (gold rising through the theme red into hot magenta) — same palette as `spectrum`.
+const PROGRESS_RAMP = ['#d98e1f', '#f0a02e', '#f25c1f', '#de1a1a', '#b3123f', '#ff2e92']
+const PROGRESS_CELLS = 36
+
+function ProgressLeds({ progress }: { progress: number }) {
+  const lit = Math.round(progress * PROGRESS_CELLS)
+  return (
+    <div className="flex gap-[3px]" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100} title="progress through this song">
+      {Array.from({ length: PROGRESS_CELLS }, (_, i) => (
+        <span
+          key={i}
+          className="w-[7px] h-[7px] transition-colors duration-300"
+          style={{
+            backgroundColor:
+              i < lit
+                ? PROGRESS_RAMP[Math.min(PROGRESS_RAMP.length - 1, Math.floor((i / PROGRESS_CELLS) * PROGRESS_RAMP.length))]
+                : '#e2e7f2',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
 
 // The queue list is memoized so the 4Hz progress tick (which re-renders BeatsPlayer)
 // doesn't re-render up to 500 rows — this only re-renders when the queue or the
@@ -120,9 +151,11 @@ export default function BeatsPlayer() {
   const [progress, setProgress] = useState(0) // 0..1 through the current song's cycles
   const [vizCtx, setVizCtx] = useState<AudioContext | null>(null)
   const [vizNode, setVizNode] = useState<AudioNode | null>(null)
-  // mobile: the engine panel is a bottom drawer (closed by default) so the queue gets
-  // the screen; on lg+ it's always the open side panel. Once mounted (on Start) the
-  // engine must never unmount — it owns the audio pipeline; `started` never reverts.
+  // The queue and engine live in slide-in drawers (closed by default) so the stage —
+  // visualizer + now playing — keeps the screen. Once mounted (on Start) the engine
+  // must never unmount, even with its drawer off-screen — it owns the audio pipeline;
+  // `started` never reverts.
+  const [queueOpen, setQueueOpen] = useState(false)
   const [engineOpen, setEngineOpen] = useState(false)
 
   const adapterRef = useRef<StrudelAdapter | null>(null)
@@ -141,6 +174,19 @@ export default function BeatsPlayer() {
   const playInFlightRef = useRef(false)
 
   const nowPlaying = queue[currentIdx] ?? null
+  // the wrap-around next track, for the "up next" line (hidden for single-song queues)
+  const upNext = currentIdx >= 0 && queue.length > 1 ? queue[(currentIdx + 1) % queue.length] : null
+
+  // Escape closes whichever drawers are open
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setQueueOpen(false)
+      setEngineOpen(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     document.title = playing && nowPlaying?.title ? `Beats (♪ ${nowPlaying.title})` : 'Beats'
@@ -386,122 +432,170 @@ export default function BeatsPlayer() {
 
   return (
     <div className="relative h-screen overflow-hidden flex flex-col text-[#2d3748] font-mono" style={PAGE_BG}>
-      {/* slim header */}
-      <header className="flex items-center justify-between px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-[#acbed8]">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2 h-2 bg-[#de1a1a] animate-pulse" />
-          <span className="font-semibold tracking-[0.25em] text-xs uppercase">beats</span>
+      {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
+      <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-[#acbed8] z-30">
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-display font-black tracking-[0.2em] text-lg uppercase leading-none">beats</span>
+          {started && (
+            <span
+              className={`flex items-center gap-1.5 border px-2 h-6 text-[10px] uppercase tracking-[0.2em] ${
+                playing && !paused ? 'border-[#de1a1a] text-[#de1a1a]' : 'border-[#acbed8] text-[#8595b5]'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 ${playing && !paused ? 'bg-[#de1a1a] animate-led-blink' : 'bg-[#acbed8]'}`}
+              />
+              {playing && !paused ? 'on air' : paused ? 'paused' : 'standby'}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setQueueOpen((o) => !o)}
+            aria-expanded={queueOpen}
+            title="Show/hide the queue"
+            className={`${CHIP_BTN} ${queueOpen ? 'border-[#de1a1a] text-[#de1a1a] bg-white' : 'border-[#acbed8] text-[#8595b5] hover:border-[#de1a1a] hover:text-[#de1a1a]'}`}
+          >
+            queue <span className="tabular-nums">({queue.length})</span>
+          </button>
+          <button
+            onClick={() => setEngineOpen((o) => !o)}
+            aria-expanded={engineOpen}
+            title="Show/hide the live-code engine"
+            className={`${CHIP_BTN} ${engineOpen ? 'border-[#de1a1a] text-[#de1a1a] bg-white' : 'border-[#acbed8] text-[#8595b5] hover:border-[#de1a1a] hover:text-[#de1a1a]'}`}
+          >
+            engine
+          </button>
         </div>
       </header>
 
-      {/* visualizer, over a finer 6px grid that dissolves down into the page's 12px grid */}
-      <div className="relative shrink-0">
+      {/* the stage: visualizer takes all free space, over a finer 6px grid that fades out */}
+      <div className="relative flex-1 min-h-[160px]">
         <div aria-hidden className="absolute inset-0 pointer-events-none" style={FINE_GRID} />
         <Visualizer
           audioContext={vizCtx}
           sourceNode={vizNode}
           isPlaying={playing && !paused}
           paused={paused}
-          sizeClass="relative h-[33vh] w-full"
+          sizeClass="relative h-full w-full"
           seamless
           sub={6}
           idleAnimation={false}
         />
       </div>
 
-      {/* transport deck — pinned; never scrolls away no matter how long the queue gets */}
+      {/* now playing — the centered marquee under the stage */}
       {started && (
-        <div className="shrink-0 border-y border-[#acbed8] bg-white/90 backdrop-blur-sm">
-          {/* song progress bar */}
-          <div className="h-[4px] bg-[#eef1f8]" title="progress through this song">
-            <div
-              className="h-full bg-[#de1a1a] transition-[width] duration-300 ease-linear"
-              style={{ width: `${progress * 100}%` }}
-            />
-          </div>
-          <div className="flex items-center gap-2 px-3 h-16">
-            <button
-              onClick={() => void togglePause()}
-              disabled={!nowPlaying}
-              title={paused ? 'Play' : 'Pause'}
-              className={DECK_BTN}
-            >
-              {paused ? '▶' : '⏸'}
-            </button>
-            <button onClick={() => void restartSong()} disabled={!nowPlaying} title="Restart this song" className={DECK_BTN}>
-              ↻
-            </button>
-            <button onClick={() => void advance()} disabled={!nowPlaying} title="Next song" className={DECK_BTN}>
-              ⏭
-            </button>
-            <div className="min-w-0 flex-1 pl-2">
-              {nowPlaying ? (
-                <>
-                  <div className="truncate font-semibold leading-tight">
-                    {nowPlaying.title ?? '(untitled)'}
-                    {nowPlaying.id != null && (
-                      <a
-                        href={`?song=${nowPlaying.id}`}
-                        title="Permalink — opens the radio starting on this song"
-                        className="ml-2 font-normal text-[11px] text-[#acbed8] hover:text-[#de1a1a] transition"
-                      >
-                        [#{nowPlaying.id}]
-                      </a>
-                    )}
-                  </div>
-                  <div className="truncate text-[11px] text-[#8595b5] mt-0.5">{subtitle(nowPlaying)}</div>
-                </>
-              ) : (
-                <div className="text-sm text-[#8595b5]">
-                  waiting for the first track — run <code>/beats &lt;theme&gt;</code>
-                </div>
+        <section className="shrink-0 flex flex-col items-center text-center gap-3 px-6 pt-5 pb-6 border-t border-[#acbed8] bg-white/90 backdrop-blur-sm">
+          {nowPlaying ? (
+            <>
+              <div className="text-[10px] uppercase tracking-[0.3em] text-[#8595b5]">
+                now playing
+                {nowPlaying.id != null && (
+                  <a
+                    href={`?song=${nowPlaying.id}`}
+                    title="Permalink — opens the radio starting on this song"
+                    className="ml-2 text-[#acbed8] hover:text-[#de1a1a] transition"
+                  >
+                    [#{nowPlaying.id}]
+                  </a>
+                )}
+              </div>
+              <h1 className="font-display font-black text-4xl sm:text-6xl leading-none max-w-full break-words line-clamp-2 sm:line-clamp-1 px-2">
+                {nowPlaying.title ?? '(untitled)'}
+              </h1>
+              <div className="truncate max-w-full text-xs text-[#8595b5]">{subtitle(nowPlaying)}</div>
+              <ProgressLeds progress={progress} />
+              <div className="flex items-center gap-3 mt-1">
+                <button onClick={() => void restartSong()} disabled={!nowPlaying} title="Restart this song" className={`${DECK_BTN} w-11 h-11 text-base`}>
+                  ↻
+                </button>
+                <button
+                  onClick={() => void togglePause()}
+                  disabled={!nowPlaying}
+                  title={paused ? 'Play' : 'Pause'}
+                  className={`${DECK_BTN} w-14 h-14 text-xl`}
+                >
+                  {paused ? '▶' : '⏸'}
+                </button>
+                <button onClick={() => void advance()} disabled={!nowPlaying} title="Next song" className={`${DECK_BTN} w-11 h-11 text-base`}>
+                  ⏭
+                </button>
+              </div>
+              {upNext && (
+                <button
+                  onClick={() => void advance()}
+                  title="Skip to this song"
+                  className="max-w-full truncate text-[11px] text-[#8595b5] hover:text-[#de1a1a] transition"
+                >
+                  up next: <span className="font-semibold">{upNext.title ?? '(untitled)'}</span> ⏭
+                </button>
               )}
+            </>
+          ) : (
+            <div className="py-6 text-sm text-[#8595b5]">
+              waiting for the first track — run <code>/beats &lt;theme&gt;</code>
             </div>
-          </div>
-        </div>
+          )}
+        </section>
       )}
 
-      {/* body: the queue is the only thing that scrolls; the engine sits in its own panel */}
-      <main className="flex-1 min-h-0 flex flex-col lg:flex-row">
-        <section className="flex-1 lg:flex-none lg:w-[440px] min-h-0 flex flex-col border-b lg:border-b-0 lg:border-r border-[#acbed8]">
-          <div className="shrink-0 px-4 h-9 flex items-center bg-white/70 border-b border-[#dbe2ef]">
-            <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">queue ({queue.length})</span>
-          </div>
-          {/* onPick must stay referentially stable (playAt is a stable useCallback) or the memo is defeated */}
-          <QueueList queue={queue} currentIdx={currentIdx} started={started} onPick={playAt} />
-        </section>
-
-        {/* Strudel engine — code-split behind the Start click, then mounted forever.
-            On mobile it collapses to its header bar; tapping toggles the drawer. */}
-        <section
-          className={`${engineOpen ? 'h-56' : 'h-9'} lg:h-auto lg:flex-1 min-h-0 flex flex-col overflow-hidden transition-[height] duration-200`}
-        >
-          <button
-            onClick={() => setEngineOpen((o) => !o)}
-            aria-expanded={engineOpen}
-            title="Show/hide the engine"
-            className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-[#dbe2ef] text-left lg:pointer-events-none"
-          >
-            <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">engine</span>
-            <span aria-hidden className="lg:hidden text-[11px] text-[#8595b5]">{engineOpen ? '▾' : '▴'}</span>
+      {/* queue drawer — slides in from the left; the stage stays visible behind it */}
+      <aside
+        aria-hidden={!queueOpen}
+        inert={!queueOpen}
+        className={`fixed left-0 top-12 bottom-0 z-20 w-[min(420px,88vw)] flex flex-col bg-[#fbfcfe] border-r border-[#acbed8] shadow-xl transition-transform duration-300 ${
+          queueOpen ? 'translate-x-0' : '-translate-x-[110%]'
+        }`}
+      >
+        <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-[#dbe2ef]">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">queue ({queue.length})</span>
+          <button onClick={() => setQueueOpen(false)} title="Close the queue" className="text-[#8595b5] hover:text-[#de1a1a] transition text-sm leading-none">
+            ✕
           </button>
-          <div className="relative flex-1 min-h-0 bg-white/85">
-            {started && (
-              <Suspense fallback={<EngineLoading />}>
-                <StrudelHost onReady={onReady} onPlayingChange={setPlaying} />
-              </Suspense>
-            )}
-          </div>
-        </section>
-      </main>
+        </div>
+        {/* onPick must stay referentially stable (playAt is a stable useCallback) or the memo is defeated */}
+        <QueueList queue={queue} currentIdx={currentIdx} started={started} onPick={playAt} />
+      </aside>
+
+      {/* engine drawer — slides up from the bottom. Code-split behind the Start click,
+          then mounted forever, even with the drawer off-screen: StrudelHost owns the
+          audio pipeline and must never unmount. */}
+      <section
+        aria-hidden={!engineOpen}
+        inert={!engineOpen}
+        className={`fixed inset-x-0 bottom-0 z-20 h-[46vh] flex flex-col bg-white border-t border-[#acbed8] shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
+          engineOpen ? 'translate-y-0' : 'translate-y-[110%]'
+        }`}
+      >
+        <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-[#dbe2ef]">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">engine — live strudel code</span>
+          <button onClick={() => setEngineOpen(false)} title="Close the engine" className="text-[#8595b5] hover:text-[#de1a1a] transition text-sm leading-none">
+            ✕
+          </button>
+        </div>
+        <div className="relative flex-1 min-h-0 bg-white/85">
+          {started && (
+            <Suspense fallback={<EngineLoading />}>
+              <StrudelHost onReady={onReady} onPlayingChange={setPlaying} />
+            </Suspense>
+          )}
+        </div>
+      </section>
 
       {/* Start overlay — the click both grants the audio gesture (sticky activation)
           and triggers the lazy engine chunk's download + mount */}
       {!started && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3" style={PAGE_BG}>
+        <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-5" style={PAGE_BG}>
+          <div className="font-display font-black text-6xl sm:text-7xl uppercase tracking-[0.15em] leading-none">beats</div>
+          <div aria-hidden className="flex gap-[3px]">
+            {PROGRESS_RAMP.map((c) => (
+              <span key={c} className="w-[7px] h-[7px]" style={{ backgroundColor: c }} />
+            ))}
+          </div>
           <button
             onClick={() => setStarted(true)}
-            className="px-8 py-3 bg-[#de1a1a] text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 transition shadow-sm"
+            className="px-8 py-3 bg-[#de1a1a] text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition shadow-sm"
           >
             ▶ Start radio
           </button>

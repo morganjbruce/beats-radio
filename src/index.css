@@ -25,6 +25,26 @@ body {
   overflow: hidden;
 }
 
+/* Dot-matrix display face — same visual language as the LED visualizer grid */
+.font-display {
+  font-family: 'Doto', 'IBM Plex Mono', monospace;
+}
+
+/* ON AIR lamp: hard on/off like a real studio sign, not a smooth pulse */
+@keyframes led-blink {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0.15; }
+}
+.animate-led-blink {
+  animation: led-blink 1.6s steps(1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-led-blink {
+    animation: none;
+  }
+}
+
 /* Strudel container */
 .strudel-container {
   background-color: white;
