@@ -156,5 +156,6 @@ See also:
 * It’s not a replacement for human creativity and genius, I built this to satisfy my curiousity! 
 * Best to think of these as rough prototypes, not real songs
 * Fable/Opus love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching
+* You probably shouldn't read the code too closely, this is the repo where I let the agents run wild
 
 
