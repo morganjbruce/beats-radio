@@ -14,6 +14,9 @@ export interface StrudelAdapter {
   stop: () => Promise<void>;
   getAudioContext: () => AudioContext | null;
   getOutputNode: () => AudioNode | null;
+  /** The live scheduler's cycles-per-second — the real tempo after the song's setcps()
+   *  ran, so only meaningful once run() has resolved. Null until then / if unavailable. */
+  getCps: () => number | null;
   /** Fire inaudible triggers for every sound a song uses so its sample buffers are
    *  fetched & cached BEFORE they're needed (samples otherwise load lazily on first hit). */
   warmup: (code: string) => void;
@@ -69,6 +72,7 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
     const superdoughRef = useRef<SuperdoughFn | null>(null);
     const resetGlobalEffectsRef = useRef<(() => void) | null>(null);
     const outputGainNodeRef = useRef<GainNode | null>(null);
+    const rerouteOutputRef = useRef<(() => void) | null>(null);
     const [loading, setLoading] = useState(true);
     const [playing, setPlaying] = useState(false);
     const onReadyCalledRef = useRef(false);
@@ -136,37 +140,51 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
           superdoughRef.current = superdough as unknown as SuperdoughFn;
           // re-exported from superdough at runtime but missing from the inferred types
           resetGlobalEffectsRef.current = (webaudioModule as unknown as { resetGlobalEffects?: () => void }).resetGlobalEffects ?? null;
+          const { getSuperdoughAudioController, initAudio } = webaudioModule as unknown as {
+            getSuperdoughAudioController: () => { output: { destinationGain: GainNode } };
+            initAudio: () => Promise<void>;
+          };
 
           // Store the audio context getter for recording
           audioContextGetterRef.current = getAudioContext;
 
-          // Create a gain node for tapping audio output for recording
-          // We'll intercept connections to destination by wrapping it
+          // Master tap between superdough's output and the speakers: the visualizer reads
+          // it (getOutputNode) and adapter.run() fades it — that fade is the ghost-audio
+          // fix, so every voice must pass through this node.
           const ctx = getAudioContext();
           if (ctx && !outputGainNodeRef.current) {
             const gainNode = ctx.createGain();
             gainNode.gain.value = 1.0;
-
-            // Store the original destination
-            const originalDestination = ctx.destination;
-
-            // Connect our gain node to the real destination
-            gainNode.connect(originalDestination);
-
-            // Monkey-patch the AudioNode.connect method to intercept connections to destination
-            type ConnectFn = (this: AudioNode, ...args: unknown[]) => unknown;
-            const originalConnect = AudioNode.prototype.connect as unknown as ConnectFn;
-            AudioNode.prototype.connect = function(this: AudioNode, ...args: unknown[]): unknown {
-              // If trying to connect to the destination, connect to our gain node instead
-              if (args[0] === originalDestination) {
-                return originalConnect.call(this, gainNode, ...args.slice(1));
-              }
-              // Otherwise, use the original connect
-              return originalConnect.apply(this, args);
-            } as unknown as typeof AudioNode.prototype.connect;
-
+            gainNode.connect(ctx.destination);
             outputGainNodeRef.current = gainNode;
           }
+
+          // superdough funnels every orbit through a single destinationGain
+          // (superdoughoutput.mjs) — re-pointing that one node at the tap replaces the
+          // old page-wide AudioNode.prototype.connect monkey-patch. resetGlobalEffects()
+          // rebuilds destinationGain wired straight to ctx.destination, so adapter.run()
+          // must re-apply this after every reset.
+          const routeThroughTap = () => {
+            const tap = outputGainNodeRef.current;
+            if (!tap) return;
+            try {
+              const out = getSuperdoughAudioController().output;
+              out.destinationGain.disconnect();
+              out.destinationGain.connect(tap);
+            } catch (err) {
+              console.warn("[strudelhost] output re-route failed:", err);
+            }
+          };
+          routeThroughTap();
+          rerouteOutputRef.current = routeThroughTap;
+
+          // The engine now lazy-mounts AFTER the Start click, so initAudioOnFirstClick's
+          // mousedown listener would only fire on a SECOND click. The Start click's sticky
+          // activation still permits resume, so init (resume + worklets) directly here —
+          // best-effort; playAt's explicit ctx.resume() covers browsers that defer.
+          void Promise.resolve()
+            .then(() => initAudio())
+            .catch(() => {});
 
           if (isCleanedUp) return;
 
@@ -330,6 +348,9 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
                   await new Promise(resolve => setTimeout(resolve, 100));
                 }
                 resetGlobalEffectsRef.current?.();
+                // the reset rebuilt superdough's output wired straight to the speakers,
+                // bypassing the tap — re-route before fading back in
+                rerouteOutputRef.current?.();
                 if (ctx && gain) {
                   gain.cancelScheduledValues(ctx.currentTime);
                   gain.setValueAtTime(0, ctx.currentTime);
@@ -356,6 +377,10 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
           },
           getOutputNode: () => {
             return outputGainNodeRef.current;
+          },
+          getCps: () => {
+            const cps = strudelRef.current?.repl?.scheduler?.cps;
+            return typeof cps === "number" && isFinite(cps) && cps > 0 ? cps : null;
           },
           warmup: (code: string) => {
             const sd = superdoughRef.current;
