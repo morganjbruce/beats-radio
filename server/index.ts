@@ -45,7 +45,10 @@ export function startServer(opts?: StartServerOptions) {
 
   const app = express()
 
-  app.use(cors())
+  // BEATS_CORS_ORIGIN (comma-separated origins) restricts CORS when deployed; unset stays
+  // permissive so local dev needs zero config.
+  const corsOrigins = process.env.BEATS_CORS_ORIGIN?.split(',').map((o) => o.trim()).filter(Boolean)
+  app.use(corsOrigins?.length ? cors({ origin: corsOrigins }) : cors())
   app.use(express.json())
 
   // --- auth ---
@@ -109,11 +112,30 @@ export function startServer(opts?: StartServerOptions) {
 
   const beatsClients = new Set<Response>()
 
+  // A single broken socket must never abort fan-out to the rest, so every write is guarded;
+  // a client that throws is evicted and its response torn down.
+  function writeTo(client: Response, payload: string): void {
+    try {
+      client.write(payload)
+    } catch {
+      beatsClients.delete(client)
+      client.destroy()
+    }
+  }
+
   // SSE fan-out to every connected player.
   function broadcast(event: string, data: unknown): void {
     const payload = sseEvent(event, data)
-    for (const client of beatsClients) client.write(payload)
+    for (const client of beatsClients) writeTo(client, payload)
   }
+
+  // Proxies (fly.io) drop idle streams while the server still counts them as listeners; a
+  // periodic SSE comment keeps connections alive and flushes out dead sockets. unref() so a
+  // closed server doesn't stay pinned in the event loop by this timer.
+  const heartbeat = setInterval(() => {
+    for (const client of beatsClients) writeTo(client, ': ping\n\n')
+  }, 25_000)
+  heartbeat.unref()
 
   app.post('/api/beats', (req, res) => {
     const { title, genre, mood, author, model, prompt, cycles, code } = req.body ?? {}
@@ -121,15 +143,38 @@ export function startServer(opts?: StartServerOptions) {
       res.status(400).json({ error: 'a non-empty "code" string is required' })
       return
     }
+    // Present-but-mistyped metadata is a caller bug worth surfacing as a 400 — before str()
+    // below, a non-string here reached the SQLite bind raw and threw an uncaught 500.
+    for (const [key, value] of Object.entries({ title, genre, mood })) {
+      if (value != null && typeof value !== 'string') {
+        res.status(400).json({ error: `"${key}" must be a string` })
+        return
+      }
+    }
+    // A non-positive cycles would make the player insta-skip every track, so anything outside
+    // 1..10000 falls back to undefined and the player default applies.
+    const cyclesNum = Math.trunc(Number(cycles))
     // `prompt` is stored for later analysis but never sent to clients, so it stays a local
     // (below) rather than a field on `song` — the song object IS the SSE/history payload.
-    const song: BeatsSong = { title, genre, mood, author: str(author, 40), model: str(model, 60), cycles: Number(cycles) || undefined, code }
+    // All free-text fields go through str(): a non-string body value must become a 400, not an
+    // uncaught SQLite bind error. genre/mood are rich liner notes, hence the generous maxes.
+    const song: BeatsSong = {
+      title: str(title, 200), genre: str(genre, 300), mood: str(mood, 1000),
+      author: str(author, 40), model: str(model, 60),
+      cycles: cyclesNum >= 1 && cyclesNum <= 10000 ? cyclesNum : undefined, code,
+    }
 
-    const inserted = insertSong.run(
-      Date.now(), song.title ?? null, song.genre ?? null, song.mood ?? null,
-      song.author ?? null, song.model ?? null, str(prompt, 8000) ?? null, song.cycles ?? null, song.code,
-    )
-    song.id = Number(inserted.lastInsertRowid)
+    // Last line of defence: anything the shaping above missed becomes a JSON 400, not a stack.
+    try {
+      const inserted = insertSong.run(
+        Date.now(), song.title ?? null, song.genre ?? null, song.mood ?? null,
+        song.author ?? null, song.model ?? null, str(prompt, 8000) ?? null, song.cycles ?? null, song.code,
+      )
+      song.id = Number(inserted.lastInsertRowid)
+    } catch {
+      res.status(400).json({ error: 'invalid song payload' })
+      return
+    }
 
     // The DB is the source of truth (the player seeds its playlist from /api/beats/history);
     // SSE only pushes this newly-posted song so connected tabs can append it live.
@@ -157,7 +202,9 @@ export function startServer(opts?: StartServerOptions) {
 
   // The full library (most recent first) — the player seeds its looping playlist from this.
   app.get('/api/beats/history', (req, res) => {
-    const limit = Math.min(Number(req.query.limit) || 100, 500)
+    // SQLite treats LIMIT -1 as "no limit", so the clamp must bound both ends; garbage → 100.
+    const requested = Math.trunc(Number(req.query.limit))
+    const limit = Number.isFinite(requested) && requested !== 0 ? Math.min(Math.max(requested, 1), 500) : 100
     res.json(recentSongs.all(limit))
   })
 
@@ -166,6 +213,11 @@ export function startServer(opts?: StartServerOptions) {
     res.write(sseEvent('hello', {}))
     beatsClients.add(res)
     req.on('close', () => beatsClients.delete(res))
+    // an errored stream would otherwise crash the process (unhandled 'error') and linger in the set
+    res.on('error', () => {
+      beatsClients.delete(res)
+      res.destroy()
+    })
   })
 
   // --- static frontend (deployed mode) ---
@@ -183,9 +235,12 @@ export function startServer(opts?: StartServerOptions) {
     })
   }
 
-  return app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`)
   })
+  // belt-and-braces alongside unref(): tests start/stop many servers in one process
+  server.on('close', () => clearInterval(heartbeat))
+  return server
 }
 
 // Run directly (repo dev via `bun --watch server/index.ts`, Dockerfile CMD `bun server/index.ts`).
