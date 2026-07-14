@@ -86,8 +86,12 @@ model`. Guardrails for the sub-agent:
 - Validate until it prints `OK`.
 - Self-critique against the taste bar and iterate until the song is **genuinely good, not just
   runnable**.
-- Post with the exact command given (it must not decide the target itself).
-- Return a one-line summary: title / genre / mood / cycles.
+- **The sub-agent runs the post itself** — local or remote — as its final step, using the
+  exact command given (it must not decide the target itself, and never hand the artifact back
+  for the main thread to post). For remote, give it the env-sourcing form from section 6
+  (`--remote` / `. ./.env.fly`) — the command reads the config file itself; never paste the
+  token into the prompt.
+- Return a one-line summary: title / genre / mood / cycles / posted-to.
 
 If sub-agents aren't available, do the full process below inline.
 
