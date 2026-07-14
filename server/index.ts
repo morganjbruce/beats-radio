@@ -1,11 +1,12 @@
 import express, { type Response } from 'express'
 import cors from 'cors'
 import { Database } from 'bun:sqlite'
-import { mkdirSync, existsSync } from 'node:fs'
+import { mkdirSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { timingSafeEqual } from 'node:crypto'
 import pkg from '../package.json'
 import type { BeatsSong } from '../src/types'
+import { withSongMeta, type SongMeta, type SongMetaLookup } from './og'
 
 function setSSEHeaders(res: Response): void {
   res.setHeader('Content-Type', 'text/event-stream')
@@ -108,6 +109,7 @@ export function startServer(opts?: StartServerOptions) {
     'INSERT INTO songs (ts, title, genre, mood, author, model, prompt, cycles, code) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
   )
   const recentSongs = db.query('SELECT id, title, genre, mood, author, model, cycles, code FROM songs ORDER BY id DESC LIMIT ?')
+  const songMetaById = db.query('SELECT id, title, genre, mood, author FROM songs WHERE id = ?')
   const deleteSong = db.query('DELETE FROM songs WHERE id = ?')
 
   const beatsClients = new Set<Response>()
@@ -207,13 +209,17 @@ export function startServer(opts?: StartServerOptions) {
   // and this is skipped. In the deployed image the vite build is baked in and served directly.
   // The page itself is public; every /api call it makes is what the token protects.
   if (existsSync(staticDir)) {
-    app.use(express.static(staticDir))
+    const indexHtml = readFileSync(join(staticDir, 'index.html'), 'utf8')
+    const lookupSongMeta: SongMetaLookup = (id) => songMetaById.get(id) as SongMeta | null
+
+    // index:false so `/` reaches the handler below — it must see ?song=<id> to inject tags
+    app.use(express.static(staticDir, { index: false }))
     app.use((req, res, next) => {
       if (req.path.startsWith('/api')) {
         next()
         return
       }
-      res.sendFile('index.html', { root: staticDir }) // SPA fallback
+      res.type('html').send(withSongMeta(indexHtml, req, lookupSongMeta)) // SPA fallback
     })
   }
 
