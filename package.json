@@ -1,6 +1,6 @@
 {
   "name": "beats-radio",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Agent-composed Strudel radio: a bun server + prebuilt browser player you run with `bunx beats-radio start`.",
   "license": "AGPL-3.0-or-later",
   "repository": {
