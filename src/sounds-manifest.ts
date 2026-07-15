@@ -8,7 +8,7 @@
 export const SAMPLE_MANIFESTS: { url: string; note: string }[] = [
   {
     url: 'https://raw.githubusercontent.com/felixroos/dough-samples/main/vcsl.json',
-    note: 'VCSL: steinway, marimba, vibraphone, harp, sax, etc.',
+    note: 'VCSL: steinway, marimba, vibraphone, harp, etc.',
   },
   {
     url: 'https://raw.githubusercontent.com/felixroos/dough-samples/main/tidal-drum-machines.json',
@@ -49,7 +49,7 @@ export const CUSTOM_SAMPLE_MAPS: { map: Record<string, string[]>; baseUrl: strin
       vinyl: ['fire/fire.wav'],
     },
     baseUrl: 'https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/',
-    note: "vinyl -> Dirt's fire crackle.",
+    note: "vinyl -> Dirt's fire crackle. Banned for new songs (see BANNED_SOUNDS); kept registered so old songs still play.",
   },
 ]
 
@@ -69,8 +69,30 @@ export const USE_SOUNDFONTS = true
 // Names that are synths, not samples — never warmed as sample buffers.
 export const SYNTH_NAMES: string[] = ['sine', 'sawtooth', 'square', 'triangle', 'noise', 'silence']
 
-// Pitched multisamples: warm a few octaves so the nearest-zone buffers load too.
-export const PITCHED: string[] = [
-  'piano', 'steinway', 'rhodes', 'marimba', 'vibraphone', 'harp', 'folkharp',
-  'organ_full', 'harmonica', 'tubularbells',
+// Curated usable sample names, grouped exactly as in skills/beats/references/sounds.md.
+// That file is the usage guidance; these arrays are the machine-readable inventory printed
+// by `beats-radio sounds` — keep the two in lockstep when either changes.
+export const DRUM_SOUNDS: string[] = [
+  'bd', 'sd', 'sn', 'cp', 'hh', 'oh', 'lt', 'mt', 'ht', 'rim', 'shaker', 'cr', 'rd',
 ]
+export const MELODIC_SOUNDS: string[] = [
+  'piano', 'steinway', 'rhodes', 'marimba', 'vibraphone', 'harp', 'folkharp',
+  'organ_full', 'harmonica',
+]
+export const PERCUSSION_SOUNDS: string[] = ['cajon', 'bongo', 'conga', 'timpani', 'tambourine']
+export const ATMOSPHERIC_SOUNDS: string[] = ['tubularbells', 'space', 'noise', 'metal']
+
+// Banned sounds (sounds.md "DO NOT USE"): they still load — vinyl even has a custom map so
+// old songs keep playing — but new songs must never select them.
+const VOCAL_BAN_NOTE =
+  'vocal samples chop awkwardly or are ~20ms blips — synthesize formant-style stabs instead'
+export const BANNED_SOUNDS: { name: string; note: string }[] = [
+  { name: 'sax', note: 'sample sounds bad — use a triangle/sawtooth lead shaped with lpf' },
+  { name: 'vinyl', note: 'crackle sample sounds bad — use lightly-filtered noise at low gain' },
+  ...['yeah', 'miniyeah', 'bev', 'ade', 'speech', 'alphabet', 'numbers', 'mouth', 'speakspell']
+    .map((name) => ({ name, note: VOCAL_BAN_NOTE })),
+]
+
+// Pitched multisamples: warm a few octaves so the nearest-zone buffers load too.
+// Derived from the melodic list (plus pitched-atmospheric tubularbells) so it can't drift.
+export const PITCHED: string[] = [...MELODIC_SOUNDS, 'tubularbells']
