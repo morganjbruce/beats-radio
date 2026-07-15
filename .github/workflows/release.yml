@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+# One release at a time, in order — a queued release must see the previous bump commit.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write # npm provenance
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # Guard against re-triggering on the bump commit if it's ever pushed with a PAT.
+    if: "!startsWith(github.event.head_commit.message, 'chore(release)')"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # npm handles versioning + publish; setup-node writes the .npmrc auth config.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - run: bun install --frozen-lockfile
+
+      - name: Lint and test
+        run: |
+          bun run lint
+          bun test
+
+      - name: Bump version
+        run: |
+          msg="$(git log -1 --pretty=%B)"
+          level=patch
+          case "$msg" in
+            *"#major"*) level=major ;;
+            *"#minor"*) level=minor ;;
+          esac
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          npm version "$level" -m "chore(release): v%s [skip ci]"
+
+      - name: Push bump commit and tag
+        run: git push --follow-tags origin HEAD:main
+
+      # prepublishOnly runs `bun run build`, so the published package includes dist/.
+      - name: Publish to npm
+        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly
+        run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
