@@ -13,6 +13,11 @@ import {
   SOUNDFONT_ALIASES,
   USE_SOUNDFONTS,
   SYNTH_NAMES,
+  DRUM_SOUNDS,
+  MELODIC_SOUNDS,
+  PERCUSSION_SOUNDS,
+  ATMOSPHERIC_SOUNDS,
+  BANNED_SOUNDS,
   PITCHED,
 } from '../src/sounds-manifest'
 
@@ -140,6 +145,11 @@ const sounds = defineCommand({
       JSON.stringify(
         {
           synths: SYNTH_NAMES,
+          drums: DRUM_SOUNDS,
+          melodic: MELODIC_SOUNDS,
+          percussion: PERCUSSION_SOUNDS,
+          atmospheric: ATMOSPHERIC_SOUNDS,
+          banned: BANNED_SOUNDS,
           pitched: PITCHED,
           soundfonts: USE_SOUNDFONTS,
           sampleManifests: SAMPLE_MANIFESTS,
