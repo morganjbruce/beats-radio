@@ -1,23 +1,50 @@
 @import "tailwindcss";
 
+/* App palette. Named tokens exposed as `--color-*` so Tailwind v4 generates
+   utilities for each (text-brand, bg-panel, border-faint, ring-faint, …) and
+   plain CSS / inline styles can reference the same value via var(--color-*).
+   The visualizer's canvas palettes (HEAT, SYNTH, RAIN, …) are drawn to <canvas>
+   as rendering data, not utilities, and intentionally stay in the component. */
+@theme {
+  /* Brand accent */
+  --color-brand: #de1a1a;
+
+  /* Ink & text */
+  --color-ink: #2d3748;          /* primary text + hard offset shadows */
+  --color-muted: #8595b5;        /* secondary text */
+  --color-muted-strong: #5b6b8c; /* secondary text, hover */
+  --color-faint: #acbed8;        /* tertiary text + default borders */
+
+  /* Lines & dividers */
+  --color-line-soft: #dbe2ef;    /* soft borders + inactive markers */
+  --color-track: #eef1f8;        /* progress track + row dividers */
+  --color-grid: #e2e7f2;         /* fine grid lines under the stage */
+
+  /* Surfaces */
+  --color-page: #e8ebf7;         /* body background */
+  --color-panel: #f4f6fc;        /* screens & panels */
+  --color-panel-soft: #fbfcfe;   /* queue drawer */
+  --color-gutter: #f8f9fc;       /* editor gutter */
+}
+
 :root {
   font-family: 'IBM Plex Mono', monospace;
   /* Strudel theme CSS variables */
   --background: white;
-  --foreground: #de1a1a;
-  --caret: #de1a1a;
+  --foreground: var(--color-brand);
+  --caret: var(--color-brand);
   --selection: rgba(222, 26, 26, 0.15);
   --lineHighlight: rgba(222, 26, 26, 0.03);
   --gutterBackground: transparent;
-  --gutterForeground: #acbed8;
+  --gutterForeground: var(--color-faint);
 }
 
 body {
   margin: 0;
   height: 100vh;
   overflow: hidden;
-  background-color: #e8ebf7;
-  color: #2d3748;
+  background-color: var(--color-page);
+  color: var(--color-ink);
 }
 
 #root {
@@ -56,8 +83,8 @@ body {
 }
 
 .cm-gutters {
-  background-color: #f8f9fc;
-  border-right: 1px solid #acbed8;
+  background-color: var(--color-gutter);
+  border-right: 1px solid var(--color-faint);
 }
 
 .cm-activeLineGutter {
