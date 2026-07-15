@@ -54,7 +54,28 @@ const FINE_GRID: CSSProperties = {
 // Transport buttons: uniform squares with a hard offset shadow; pressing sinks the
 // button into its shadow.
 const DECK_BTN =
-  'shrink-0 w-12 h-12 text-base border border-[#2d3748] bg-white leading-none shadow-[3px_3px_0_#2d3748] transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-[1px_1px_0_#2d3748] disabled:opacity-40'
+  'shrink-0 w-12 h-12 inline-flex items-center justify-center border border-[#2d3748] bg-white shadow-[3px_3px_0_#2d3748] transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-[1px_1px_0_#2d3748] disabled:opacity-40'
+
+// Transport glyphs drawn as inline SVG in currentColor: the emoji codepoints (⏮ ⏸ ⏭)
+// get forced color-emoji rendering on iOS/Android no matter the CSS, so the deck draws
+// its own monochrome icons — consistent ink everywhere, and they inherit the hover red.
+const deckIcon = (d: string) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d={d} />
+  </svg>
+)
+const ICONS = {
+  prev: deckIcon('M6 4h2.5v16H6zM20 4v16l-9.5-8z'),
+  play: deckIcon('M7 4l13 8-13 8z'),
+  pause: deckIcon('M6.5 4h4v16h-4zM13.5 4h4v16h-4z'),
+  next: deckIcon('M15.5 4H18v16h-2.5zM4 4v16l9.5-8z'),
+  restart: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden>
+      <polyline points="23 4 23 10 17 10" />
+      <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+    </svg>
+  ),
+}
 
 // Header chips that open the queue/engine drawers.
 const CHIP_BTN =
@@ -154,6 +175,10 @@ export default function BeatsPlayer() {
   const nowPlaying = queue[currentIdx] ?? null
   // brief "copied!" confirmation after the share link is used
   const [shared, setShared] = useState(false)
+  // tap the title/description to lift their line clamps and read the full copy;
+  // collapses again when the track changes
+  const [textExpanded, setTextExpanded] = useState(false)
+  useEffect(() => setTextExpanded(false), [currentIdx])
 
   // Copy a permalink to the current song to the clipboard; fall back to navigating to
   // the permalink if the Clipboard API is unavailable (e.g. non-secure context).
@@ -432,19 +457,14 @@ export default function BeatsPlayer() {
       {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
       <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-[#acbed8] z-30">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="font-bold tracking-[0.25em] text-sm uppercase leading-none">beats</span>
-          {started && (
-            <span
-              className={`flex items-center gap-1.5 border px-2 h-6 text-[10px] uppercase tracking-[0.2em] ${
-                playing && !paused ? 'border-[#de1a1a] text-[#de1a1a]' : 'border-[#acbed8] text-[#8595b5]'
-              }`}
-            >
-              <span
-                className={`w-1.5 h-1.5 ${playing && !paused ? 'bg-[#de1a1a] animate-led-blink' : 'bg-[#acbed8]'}`}
-              />
-              {playing && !paused ? 'on air' : paused ? 'paused' : 'standby'}
-            </span>
-          )}
+          {/* the wordmark IS the on-air lamp: red while songs play, ink when paused/idle */}
+          <span
+            className={`font-bold tracking-[0.25em] text-sm uppercase leading-none transition-colors duration-300 ${
+              playing && !paused ? 'text-[#de1a1a]' : ''
+            }`}
+          >
+            beats
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -494,12 +514,27 @@ export default function BeatsPlayer() {
           <div className="flex flex-col items-center text-center gap-3 px-6 pt-4 pb-6">
             {nowPlaying ? (
               <>
-                <h1 className="font-song font-normal text-3xl sm:text-5xl leading-tight max-w-full break-words line-clamp-2 sm:line-clamp-1 px-2">
+                <h1
+                  className={`font-song font-normal text-3xl sm:text-5xl leading-tight max-w-full break-words px-2 ${
+                    textExpanded ? '' : 'line-clamp-2 sm:line-clamp-1'
+                  }`}
+                >
                   {nowPlaying.title ?? '(untitled)'}
                 </h1>
-                <div className="max-w-2xl text-xs text-[#8595b5] text-balance line-clamp-2">
-                  {[nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · ')}
-                </div>
+                {(nowPlaying.genre || nowPlaying.mood) && (
+                  // tapping the description lifts the clamps (title too) to read the full copy
+                  <button
+                    type="button"
+                    onClick={() => setTextExpanded((e) => !e)}
+                    aria-expanded={textExpanded}
+                    title={textExpanded ? 'Show less' : 'Show the full description'}
+                    className={`max-w-2xl text-xs text-[#8595b5] text-balance cursor-pointer transition-colors hover:text-[#5b6b8c] ${
+                      textExpanded ? '' : 'line-clamp-2'
+                    }`}
+                  >
+                    {[nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · ')}
+                  </button>
+                )}
                 {(nowPlaying.author || nowPlaying.model) && (
                   <div className="truncate max-w-full text-[11px] text-[#acbed8]">
                     {[nowPlaying.author ? `by ${nowPlaying.author}` : null, nowPlaying.model]
@@ -509,10 +544,10 @@ export default function BeatsPlayer() {
                 )}
                 <div className="flex items-center gap-3 mt-1">
                   <button onClick={() => playPrev()} disabled={currentIdx <= 0} title="Previous song" className={DECK_BTN}>
-                    ⏮
+                    {ICONS.prev}
                   </button>
                   <button onClick={() => void restartSong()} disabled={!nowPlaying} title="Restart this song" className={DECK_BTN}>
-                    ↻
+                    {ICONS.restart}
                   </button>
                   <button
                     onClick={() => void togglePause()}
@@ -520,10 +555,10 @@ export default function BeatsPlayer() {
                     title={paused ? 'Play' : 'Pause'}
                     className={DECK_BTN}
                   >
-                    {paused ? '▶' : '⏸'}
+                    {paused ? ICONS.play : ICONS.pause}
                   </button>
                   <button onClick={() => void advance()} disabled={!nowPlaying} title="Next song" className={DECK_BTN}>
-                    ⏭
+                    {ICONS.next}
                   </button>
                 </div>
                 {nowPlaying.id != null && (
@@ -600,9 +635,12 @@ export default function BeatsPlayer() {
           </div>
           <button
             onClick={() => setStarted(true)}
-            className="px-8 py-3 bg-[#de1a1a] text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition shadow-sm"
+            className="px-8 py-3 inline-flex items-center gap-2.5 bg-[#de1a1a] text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition shadow-sm"
           >
-            ▶ Start radio
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+              <path d="M4 2l18 10L4 22z" />
+            </svg>
+            Start radio
           </button>
           <p className="text-[#acbed8] text-xs">
             click to enable audio · then run <code className="text-[#8595b5]">/beats &lt;theme&gt;</code>
