@@ -12,9 +12,18 @@
   --gutterForeground: #acbed8;
 }
 
+html,
+body {
+  /* stop iOS Safari rubber-banding from panning the (unscrollable) page */
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
+  /* dvh tracks the *visible* iOS Safari viewport; 100vh is the toolbar-collapsed
+     height, which lets the page hang past the bottom and the top get clipped */
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   background-color: #e8ebf7;
   color: #2d3748;
@@ -22,6 +31,7 @@ body {
 
 #root {
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 

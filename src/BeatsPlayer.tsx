@@ -446,14 +446,46 @@ export default function BeatsPlayer() {
     return () => clearInterval(id)
   }, [engineLive])
 
-  // Keep the playing row in view as the radio walks the queue.
+  // Keep the playing row in view as the radio walks the queue. Scroll ONLY the list
+  // container — scrollIntoView walks every scrollable ancestor including the window,
+  // and on iOS Safari that pans the whole (overflow:hidden) page with no way back.
   useEffect(() => {
     if (currentIdx < 0) return
-    document.getElementById(`queue-row-${currentIdx}`)?.scrollIntoView({ block: 'nearest' })
+    const row = document.getElementById(`queue-row-${currentIdx}`)
+    const list = row?.parentElement
+    if (!row || !list) return
+    const rowRect = row.getBoundingClientRect()
+    const listRect = list.getBoundingClientRect()
+    if (rowRect.top < listRect.top) list.scrollTop += rowRect.top - listRect.top
+    else if (rowRect.bottom > listRect.bottom) list.scrollTop += rowRect.bottom - listRect.bottom
   }, [currentIdx])
 
+  // iOS Safari can still pan the page itself (keyboard avoidance, overscroll quirks);
+  // with overflow:hidden there is no scrollbar to undo it, leaving the header stuck
+  // off-screen. Snap back whenever the window moves — except while the user is typing
+  // (e.g. in the Strudel editor), when the pan is the keyboard doing its job.
+  useEffect(() => {
+    const isEditing = () => {
+      const el = document.activeElement
+      return (
+        el instanceof HTMLElement &&
+        (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
+      )
+    }
+    const snapBack = () => {
+      if (!isEditing() && (window.scrollX !== 0 || window.scrollY !== 0)) window.scrollTo(0, 0)
+    }
+    window.addEventListener('scroll', snapBack)
+    // fires when the keyboard closes, after focus has already left the editor
+    window.visualViewport?.addEventListener('resize', snapBack)
+    return () => {
+      window.removeEventListener('scroll', snapBack)
+      window.visualViewport?.removeEventListener('resize', snapBack)
+    }
+  }, [])
+
   return (
-    <div className="relative h-screen overflow-hidden flex flex-col text-[#2d3748] font-mono" style={PAGE_BG}>
+    <div className="relative h-dvh overflow-hidden flex flex-col text-[#2d3748] font-mono" style={PAGE_BG}>
       {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
       <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-[#acbed8] z-30">
         <div className="flex items-center gap-3 min-w-0">
@@ -604,7 +636,7 @@ export default function BeatsPlayer() {
       <section
         aria-hidden={!engineOpen}
         inert={!engineOpen}
-        className={`fixed inset-x-0 bottom-0 z-20 h-[46vh] flex flex-col bg-white border-t border-[#acbed8] shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
+        className={`fixed inset-x-0 bottom-0 z-20 h-[46dvh] flex flex-col bg-white border-t border-[#acbed8] shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
           engineOpen ? 'translate-y-0' : 'translate-y-[110%]'
         }`}
       >
