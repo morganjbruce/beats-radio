@@ -123,6 +123,7 @@ export function Visualizer({
     roadRe: new Int16Array(0), // right edge column
     roadDX2: new Float32Array(0), // (world distance) * 2, for the scroll phase
     roadFlags: new Uint8Array(0), // bit0: near-field (double edge); bit1: very near (widen dash)
+    roadHalf: 0, // near-field road half-width (cells) — shared with the palm shoulders
     tick: 0,
     bassEma: 0,
     flash: 0,
@@ -214,7 +215,10 @@ export function Visualizer({
     // outrun road: edge columns, scroll distance, and near-field flags per scanline are pure
     // functions of grid size, so compute them once here instead of every animation frame.
     const hor = Math.floor(rows * 0.55)
-    const roadHalfNear = cols * 0.3
+    // near-field half-width: 30% of the panel on landscape, widening toward 44% as the
+    // panel goes portrait — a fixed 0.3 reads pinched when cols are scarce (mobile)
+    const roadHalfNear = cols * Math.min(0.44, Math.max(0.3, 0.3 * (rows / cols)))
+    d.roadHalf = roadHalfNear
     d.roadLe = new Int16Array(rows)
     d.roadRe = new Int16Array(rows)
     d.roadDX2 = new Float32Array(rows)
@@ -531,7 +535,7 @@ export function Visualizer({
 
       // ground + road: desert sand with perspective scroll lines either side of a solid
       // asphalt bed; edges converge on the vanishing point, dashes flow toward the viewer
-      const roadHalfNear = cols * 0.3 // still needed for the palm shoulders below
+      const roadHalfNear = d.roadHalf // palm shoulders track the (aspect-aware) road width
       const ctr = Math.round(cx)
       const dash = d.flash > 0 ? '#14161f' : '#d98e1f'
       for (let r = 0; r < hor; r++) {
