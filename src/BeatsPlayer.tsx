@@ -35,14 +35,14 @@ function parseCps(code: string): number {
 
 // Flat light page — the only grid on the page is the visualizer's (below).
 const PAGE_BG: CSSProperties = {
-  backgroundColor: '#f4f6fc',
+  backgroundColor: 'var(--color-panel)',
 }
 
 // Tight 6px grid under the visualizer only (matching its 6px LED pitch), in translucent
 // grey, fading out toward its bottom edge into the flat page.
 const FINE_GRID: CSSProperties = {
   backgroundImage:
-    'linear-gradient(to right, #e2e7f2 1px, transparent 1px), linear-gradient(to bottom, #e2e7f2 1px, transparent 1px)',
+    'linear-gradient(to right, var(--color-grid) 1px, transparent 1px), linear-gradient(to bottom, var(--color-grid) 1px, transparent 1px)',
   backgroundSize: '6px 6px',
   // anchor the tiling to the bottom edge so gridlines stay phase-aligned with the
   // visualizer's bottom-anchored LED cells (container height isn't a multiple of 6)
@@ -54,7 +54,7 @@ const FINE_GRID: CSSProperties = {
 // Transport buttons: uniform squares with a hard offset shadow; pressing sinks the
 // button into its shadow.
 const DECK_BTN =
-  'shrink-0 w-12 h-12 inline-flex items-center justify-center border border-[#2d3748] bg-white shadow-[3px_3px_0_#2d3748] transition enabled:hover:border-[#de1a1a] enabled:hover:text-[#de1a1a] enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-[1px_1px_0_#2d3748] disabled:opacity-40'
+  'shrink-0 w-12 h-12 inline-flex items-center justify-center border border-ink bg-white shadow-[3px_3px_0_var(--color-ink)] transition enabled:hover:border-brand enabled:hover:text-brand enabled:active:translate-x-[2px] enabled:active:translate-y-[2px] enabled:active:shadow-[1px_1px_0_var(--color-ink)] disabled:opacity-40'
 
 // Transport glyphs drawn as inline SVG in currentColor: the emoji codepoints (⏮ ⏸ ⏭)
 // get forced color-emoji rendering on iOS/Android no matter the CSS, so the deck draws
@@ -112,26 +112,26 @@ const QueueList = memo(function QueueList({
             <button
               onClick={() => void onPick(i)}
               title={isCurrent ? 'Now playing' : 'Play this'}
-              className={`w-full text-left px-3 py-2 flex items-center gap-2.5 border-b border-[#eef1f8] transition ${
+              className={`w-full text-left px-3 py-2 flex items-center gap-2.5 border-b border-track transition ${
                 isCurrent ? 'bg-white' : isPlayed ? 'opacity-50 hover:opacity-100 hover:bg-white/80' : 'hover:bg-white/80'
               }`}
             >
-              <span className={`w-2 h-2 shrink-0 ${isCurrent ? 'bg-[#de1a1a] animate-pulse' : 'bg-[#dbe2ef]'}`} />
-              <span className={`w-6 shrink-0 text-[11px] tabular-nums ${isCurrent ? 'text-[#de1a1a]' : 'text-[#acbed8]'}`}>
+              <span className={`w-2 h-2 shrink-0 ${isCurrent ? 'bg-brand animate-pulse' : 'bg-line-soft'}`} />
+              <span className={`w-6 shrink-0 text-[11px] tabular-nums ${isCurrent ? 'text-brand' : 'text-faint'}`}>
                 {String(i + 1).padStart(2, '0')}
               </span>
               <span className="min-w-0 flex-1">
-                <span className={`block truncate text-sm ${isCurrent ? 'font-semibold text-[#de1a1a]' : 'font-medium'}`}>
+                <span className={`block truncate text-sm ${isCurrent ? 'font-semibold text-brand' : 'font-medium'}`}>
                   {s.title ?? '(untitled)'}
                 </span>
-                <span className="block truncate text-[11px] text-[#8595b5]">{subtitle(s)}</span>
+                <span className="block truncate text-[11px] text-muted">{subtitle(s)}</span>
               </span>
             </button>
           </li>
         )
       })}
       {started && queue.length === 0 && (
-        <li className="px-4 py-6 text-xs text-[#8595b5]">
+        <li className="px-4 py-6 text-xs text-muted">
           queue is empty — run <code>/beats &lt;theme&gt;</code> to add the first track
         </li>
       )}
@@ -453,14 +453,14 @@ export default function BeatsPlayer() {
   }, [currentIdx])
 
   return (
-    <div className="relative h-screen overflow-hidden flex flex-col text-[#2d3748] font-mono" style={PAGE_BG}>
+    <div className="relative h-screen overflow-hidden flex flex-col text-ink font-mono" style={PAGE_BG}>
       {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
-      <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-[#acbed8] z-30">
+      <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-faint z-30">
         <div className="flex items-center gap-3 min-w-0">
           {/* the wordmark IS the on-air lamp: red while songs play, ink when paused/idle */}
           <span
             className={`font-bold tracking-[0.25em] text-sm uppercase leading-none transition-colors duration-300 ${
-              playing && !paused ? 'text-[#de1a1a]' : ''
+              playing && !paused ? 'text-brand' : ''
             }`}
           >
             beats
@@ -471,7 +471,7 @@ export default function BeatsPlayer() {
             onClick={() => setQueueOpen((o) => !o)}
             aria-expanded={queueOpen}
             title="Show/hide the queue"
-            className={`${CHIP_BTN} ${queueOpen ? 'border-[#de1a1a] text-[#de1a1a] bg-white' : 'border-[#acbed8] text-[#8595b5] hover:border-[#de1a1a] hover:text-[#de1a1a]'}`}
+            className={`${CHIP_BTN} ${queueOpen ? 'border-brand text-brand bg-white' : 'border-faint text-muted hover:border-brand hover:text-brand'}`}
           >
             queue <span className="tabular-nums">({queue.length})</span>
           </button>
@@ -479,7 +479,7 @@ export default function BeatsPlayer() {
             onClick={() => setEngineOpen((o) => !o)}
             aria-expanded={engineOpen}
             title="Show/hide the live Strudel code"
-            className={`${CHIP_BTN} ${engineOpen ? 'border-[#de1a1a] text-[#de1a1a] bg-white' : 'border-[#acbed8] text-[#8595b5] hover:border-[#de1a1a] hover:text-[#de1a1a]'}`}
+            className={`${CHIP_BTN} ${engineOpen ? 'border-brand text-brand bg-white' : 'border-faint text-muted hover:border-brand hover:text-brand'}`}
           >
             strudel
           </button>
@@ -503,11 +503,11 @@ export default function BeatsPlayer() {
 
       {/* now playing — the centered marquee under the stage */}
       {started && (
-        <section className="shrink-0 border-t border-[#acbed8] bg-white/90 backdrop-blur-sm">
+        <section className="shrink-0 border-t border-faint bg-white/90 backdrop-blur-sm">
           {/* song progress — full width, directly under the visualizer */}
-          <div className="h-[4px] bg-[#eef1f8]" title="progress through this song">
+          <div className="h-[4px] bg-track" title="progress through this song">
             <div
-              className="h-full bg-[#de1a1a] transition-[width] duration-300 ease-linear"
+              className="h-full bg-brand transition-[width] duration-300 ease-linear"
               style={{ width: `${progress * 100}%` }}
             />
           </div>
@@ -528,7 +528,7 @@ export default function BeatsPlayer() {
                     onClick={() => setTextExpanded((e) => !e)}
                     aria-expanded={textExpanded}
                     title={textExpanded ? 'Show less' : 'Show the full description'}
-                    className={`max-w-2xl text-xs text-[#8595b5] text-balance cursor-pointer transition-colors hover:text-[#5b6b8c] ${
+                    className={`max-w-2xl text-xs text-muted text-balance cursor-pointer transition-colors hover:text-muted-strong ${
                       textExpanded ? '' : 'line-clamp-2'
                     }`}
                   >
@@ -536,7 +536,7 @@ export default function BeatsPlayer() {
                   </button>
                 )}
                 {(nowPlaying.author || nowPlaying.model) && (
-                  <div className="truncate max-w-full text-[11px] text-[#acbed8]">
+                  <div className="truncate max-w-full text-[11px] text-faint">
                     {[nowPlaying.author ? `by ${nowPlaying.author}` : null, nowPlaying.model]
                       .filter(Boolean)
                       .join(' · ')}
@@ -565,14 +565,14 @@ export default function BeatsPlayer() {
                   <button
                     onClick={() => void shareSong()}
                     title="Copy a link to this song"
-                    className="text-[11px] uppercase tracking-[0.2em] text-[#8595b5] hover:text-[#de1a1a] transition"
+                    className="text-[11px] uppercase tracking-[0.2em] text-muted hover:text-brand transition"
                   >
                     {shared ? '✓ link copied' : '↗ share song'}
                   </button>
                 )}
               </>
             ) : (
-              <div className="py-6 text-sm text-[#8595b5]">
+              <div className="py-6 text-sm text-muted">
                 waiting for the first track — run <code>/beats &lt;theme&gt;</code>
               </div>
             )}
@@ -584,13 +584,13 @@ export default function BeatsPlayer() {
       <aside
         aria-hidden={!queueOpen}
         inert={!queueOpen}
-        className={`fixed left-0 top-12 bottom-0 z-20 w-[min(420px,88vw)] flex flex-col bg-[#fbfcfe] border-r border-[#acbed8] shadow-xl transition-transform duration-300 ${
+        className={`fixed left-0 top-12 bottom-0 z-20 w-[min(420px,88vw)] flex flex-col bg-panel-soft border-r border-faint shadow-xl transition-transform duration-300 ${
           queueOpen ? 'translate-x-0' : '-translate-x-[110%]'
         }`}
       >
-        <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-[#dbe2ef]">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">queue ({queue.length})</span>
-          <button onClick={() => setQueueOpen(false)} title="Close the queue" className="text-[#8595b5] hover:text-[#de1a1a] transition text-sm leading-none">
+        <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-line-soft">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted">queue ({queue.length})</span>
+          <button onClick={() => setQueueOpen(false)} title="Close the queue" className="text-muted hover:text-brand transition text-sm leading-none">
             ✕
           </button>
         </div>
@@ -604,13 +604,13 @@ export default function BeatsPlayer() {
       <section
         aria-hidden={!engineOpen}
         inert={!engineOpen}
-        className={`fixed inset-x-0 bottom-0 z-20 h-[46vh] flex flex-col bg-white border-t border-[#acbed8] shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
+        className={`fixed inset-x-0 bottom-0 z-20 h-[46vh] flex flex-col bg-white border-t border-faint shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
           engineOpen ? 'translate-y-0' : 'translate-y-[110%]'
         }`}
       >
-        <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-[#dbe2ef]">
-          <span className="text-[10px] uppercase tracking-[0.25em] text-[#8595b5]">strudel</span>
-          <button onClick={() => setEngineOpen(false)} title="Close Strudel" className="text-[#8595b5] hover:text-[#de1a1a] transition text-sm leading-none">
+        <div className="shrink-0 px-4 h-9 flex items-center justify-between bg-white/70 border-b border-line-soft">
+          <span className="text-[10px] uppercase tracking-[0.25em] text-muted">strudel</span>
+          <button onClick={() => setEngineOpen(false)} title="Close Strudel" className="text-muted hover:text-brand transition text-sm leading-none">
             ✕
           </button>
         </div>
@@ -635,15 +635,15 @@ export default function BeatsPlayer() {
           </div>
           <button
             onClick={() => setStarted(true)}
-            className="px-8 py-3 inline-flex items-center gap-2.5 bg-[#de1a1a] text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition shadow-sm"
+            className="px-8 py-3 inline-flex items-center gap-2.5 bg-brand text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition shadow-sm"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M4 2l18 10L4 22z" />
             </svg>
             Start radio
           </button>
-          <p className="text-[#acbed8] text-xs">
-            click to enable audio · then run <code className="text-[#8595b5]">/beats &lt;theme&gt;</code>
+          <p className="text-faint text-xs">
+            click to enable audio · then run <code className="text-muted">/beats &lt;theme&gt;</code>
           </p>
         </div>
       )}
