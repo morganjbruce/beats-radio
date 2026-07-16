@@ -1,8 +1,8 @@
 name: CI
 
+# Pushes to main are covered by the release workflow, which lints, tests,
+# and builds (via prepublishOnly) before publishing.
 on:
-  push:
-    branches: [main]
   pull_request:
 
 jobs:
