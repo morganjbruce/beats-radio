@@ -453,7 +453,7 @@ export default function BeatsPlayer() {
   }, [currentIdx])
 
   return (
-    <div className="relative h-screen overflow-hidden flex flex-col text-ink font-mono" style={PAGE_BG}>
+    <div className="relative h-dvh overflow-hidden flex flex-col text-ink font-mono" style={PAGE_BG}>
       {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
       <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-faint z-30">
         <div className="flex items-center gap-3 min-w-0">
@@ -604,7 +604,7 @@ export default function BeatsPlayer() {
       <section
         aria-hidden={!engineOpen}
         inert={!engineOpen}
-        className={`fixed inset-x-0 bottom-0 z-20 h-[46vh] flex flex-col bg-white border-t border-faint shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
+        className={`fixed inset-x-0 bottom-0 z-20 h-[46dvh] flex flex-col bg-white border-t border-faint shadow-[0_-4px_16px_rgba(45,55,72,0.12)] transition-transform duration-300 ${
           engineOpen ? 'translate-y-0' : 'translate-y-[110%]'
         }`}
       >
