@@ -50,6 +50,17 @@ declare module '@strudel/webaudio' {
 declare module '@strudel/core' {
   export function evalScope(...imports: Promise<unknown>[]): Promise<void>;
   export const silence: unknown;
+  // headless repl (scheduler + evaluate) — used by the sound lab, no editor attached
+  export function repl(options: {
+    defaultOutput: unknown;
+    getTime: () => number;
+    transpiler: unknown;
+    onToggle?: (started: boolean) => void;
+  }): {
+    evaluate(code: string): Promise<unknown>;
+    stop(): void;
+    start(): void;
+  };
   export class Pattern {
     static prototype: {
       silence?: () => unknown;

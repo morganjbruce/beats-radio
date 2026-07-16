@@ -467,6 +467,13 @@ export default function BeatsPlayer() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href="/lab"
+            title="Sound lab — audition sounds and transforms"
+            className={`${CHIP_BTN} border-[#acbed8] text-[#8595b5] hover:border-[#de1a1a] hover:text-[#de1a1a]`}
+          >
+            lab
+          </a>
           <button
             onClick={() => setQueueOpen((o) => !o)}
             aria-expanded={queueOpen}
