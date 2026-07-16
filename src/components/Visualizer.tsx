@@ -667,14 +667,14 @@ export function Visualizer({
           cycleMode()
         }
       }}
-      className={`${sizeClass ?? 'flex-shrink-0 h-20 md:h-28'} ${seamless ? '' : 'border-b border-[#acbed8]'} select-none cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-[#acbed8]`}
+      className={`${sizeClass ?? 'flex-shrink-0 h-20 md:h-28'} ${seamless ? '' : 'border-b border-faint'} select-none cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-faint`}
     >
       <div
         ref={wrapperRef}
         className={`relative w-full h-full overflow-hidden flex ${
           seamless
             ? 'items-end justify-start bg-transparent' // anchor bottom-left: bars sit flush on the bottom edge; ceil-overflow clips at the top
-            : 'items-center justify-center bg-[#f4f6fc] shadow-[inset_0_1px_4px_rgba(45,55,72,0.15)]'
+            : 'items-center justify-center bg-panel shadow-[inset_0_1px_4px_rgba(45,55,72,0.15)]'
         }`}
       >
         <canvas
