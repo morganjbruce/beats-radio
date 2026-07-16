@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { EngineLoading } from "./EngineLoading";
+import { connectOutput, workerSetInterval, workerClearInterval } from "../background-audio";
 import {
   SAMPLE_MANIFESTS,
   CUSTOM_SAMPLE_MAPS,
@@ -151,7 +152,9 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
           if (ctx && !outputGainNodeRef.current) {
             const gainNode = ctx.createGain();
             gainNode.gain.value = 1.0;
-            gainNode.connect(ctx.destination);
+            // On iOS this routes through a media element so the radio keeps playing in
+            // the background; elsewhere it's a plain connect to ctx.destination.
+            connectOutput(ctx, gainNode);
             outputGainNodeRef.current = gainNode;
           }
 
@@ -190,6 +193,12 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
           const mirror = new (StrudelMirror as any)({
             defaultOutput: webaudioOutput,
             getTime: () => getAudioContext().currentTime,
+            // Drive the scheduler clock from a Worker: main-thread setInterval gets
+            // throttled to >=1s in background pages, which starves zyklus' ~200ms
+            // lookahead and makes backgrounded playback stutter. Forwarded down
+            // StrudelMirror -> repl -> Cyclist -> createClock.
+            setInterval: workerSetInterval,
+            clearInterval: workerClearInterval,
             transpiler,
             root: containerRef.current,
             initialCode: defaultCode,

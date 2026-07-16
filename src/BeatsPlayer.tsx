@@ -2,6 +2,7 @@ import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CS
 import { Visualizer, EngineLoading } from './components'
 import type { StrudelAdapter } from './components'
 import type { BeatsSong } from './types'
+import { primeMediaElement, setMediaPaused } from './background-audio'
 
 // lazy so the Strudel/CodeMirror graph (>500kB) only downloads on the Start click
 const StrudelHost = lazy(() => import('./components/StrudelHost'))
@@ -209,6 +210,40 @@ export default function BeatsPlayer() {
     document.title = playing && nowPlaying?.title ? `Beats (♪ ${nowPlaying.title})` : 'Beats'
   }, [playing, nowPlaying])
 
+  // Lock-screen / control-center metadata for the current song. iOS surfaces this once
+  // audio routes through the background media element; on other platforms it feeds the
+  // browser's media hub where one exists, and is harmless otherwise.
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !nowPlaying) return
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: nowPlaying.title ?? '(untitled)',
+      artist: nowPlaying.author ?? 'beats radio',
+      album: [nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · '),
+      artwork: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml' }],
+    })
+  }, [nowPlaying])
+
+  // iOS flips the context to "interrupted" on phone calls, Siri, etc., and doesn't
+  // always resume it when the interruption ends. Whenever the state changes (or the
+  // page returns to the foreground) resume — unless the user paused on purpose.
+  useEffect(() => {
+    const ctx = vizCtx
+    if (!ctx) return
+    const tryResume = () => {
+      if (pausedRef.current || ctx.state === 'running') return
+      void ctx.resume().then(() => setMediaPaused(false)).catch(() => {})
+    }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') tryResume()
+    }
+    ctx.addEventListener('statechange', tryResume)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      ctx.removeEventListener('statechange', tryResume)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [vizCtx])
+
   const onReady = useCallback((adapter: StrudelAdapter) => {
     adapterRef.current = adapter
   }, [])
@@ -263,6 +298,8 @@ export default function BeatsPlayer() {
       if (playSeqRef.current !== seq) return // superseded mid-run: the newer call owns the engine
       setIndex(index)
       setProgress(0)
+      setMediaPaused(false) // picking a song always plays — reflect it on the lock screen
+
       cpsRef.current = adapter.getCps() ?? parseCps(song.code) // regex parse = fallback only
       startTimeRef.current = ctx ? ctx.currentTime : 0
       if (ctx) setVizCtx(ctx)
@@ -313,14 +350,19 @@ export default function BeatsPlayer() {
     if (!ctx) return
     try {
       if (ctx.state === 'running') {
-        await ctx.suspend()
+        // flag BEFORE suspending: the statechange listener must see "user paused" or it
+        // would immediately resume the context it thinks got interrupted
         setPausedFlag(true)
+        await ctx.suspend()
+        setMediaPaused(true)
       } else {
         await ctx.resume()
         setPausedFlag(false)
+        setMediaPaused(false)
       }
     } catch (err) {
       console.error('[beats] pause toggle:', err)
+      setPausedFlag(ctx.state !== 'running')
     }
   }, [setPausedFlag])
 
@@ -333,6 +375,36 @@ export default function BeatsPlayer() {
   // (stop -> start), which resets Strudel's scheduler to cycle 0, resets our advance
   // clock, and resumes if paused — exactly playAt's contract. Warmup/viz re-sets are no-ops.
   const restartSong = useCallback(() => playAt(idxRef.current), [playAt])
+
+  // Lock-screen transport -> the same handlers the on-page deck buttons use. play/pause
+  // check the live context state rather than toggling blindly, in case the OS re-sends
+  // an action the page has already reached.
+  useEffect(() => {
+    if (!started || !('mediaSession' in navigator)) return
+    const ms = navigator.mediaSession
+    const actions: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ['play', () => { if (adapterRef.current?.getAudioContext()?.state !== 'running') void togglePause() }],
+      ['pause', () => { if (adapterRef.current?.getAudioContext()?.state === 'running') void togglePause() }],
+      ['nexttrack', () => void advance()],
+      ['previoustrack', () => playPrev()],
+    ]
+    for (const [action, handler] of actions) {
+      try {
+        ms.setActionHandler(action, handler)
+      } catch {
+        /* action unsupported on this platform */
+      }
+    }
+    return () => {
+      for (const [action] of actions) {
+        try {
+          ms.setActionHandler(action, null)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }, [started, togglePause, advance, playPrev])
 
   // On start, seed the queue from the server's persisted song log (SQLite), oldest →
   // newest, so the list reads chronologically and new songs naturally extend the end.
@@ -634,7 +706,12 @@ export default function BeatsPlayer() {
             ))}
           </div>
           <button
-            onClick={() => setStarted(true)}
+            onClick={() => {
+              // synchronously inside the gesture: unlock the background <audio> element
+              // (iOS-only no-op elsewhere) before the engine chunk starts downloading
+              primeMediaElement()
+              setStarted(true)
+            }}
             className="px-8 py-3 inline-flex items-center gap-2.5 bg-[#de1a1a] text-white font-semibold uppercase tracking-[0.15em] hover:opacity-90 hover:-translate-y-0.5 active:translate-y-0 transition shadow-sm"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
