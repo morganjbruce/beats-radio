@@ -87,6 +87,16 @@ const ALL_PARAMS = PARAM_GROUPS.flatMap((g) => g.params)
 
 // -- sound browser ---------------------------------------------------------------------
 const SYNTH_WAVEFORMS = ['sine', 'sawtooth', 'square', 'triangle']
+// Candidate sounds under audition for promotion into the curated set. All already load
+// (Dirt-Samples, VCSL, or the GM soundfonts) but are NOT advertised in sounds.md yet —
+// the lab is where they earn their spot (or a ban; that's how sax and vinyl got cut).
+const CANDIDATE_SOUNDS = [
+  'amencutup', 'jungbass', 'gretsch', 'jazz', 'tabla', 'tabla2',
+  'kalimba', 'kalimba2', 'moog', 'juno', 'jvbass',
+  'rave', 'hoover', 'stab', 'gm_acoustic_bass',
+]
+// candidates that want a note() pattern rather than a drum-style s() pattern
+const CANDIDATE_PITCHED = new Set(['kalimba', 'kalimba2', 'gm_acoustic_bass'])
 const CATEGORIES = [
   { id: 'drums', label: 'drums', sounds: DRUM_SOUNDS },
   { id: 'machines', label: 'drum machines', sounds: [] as string[] },
@@ -94,6 +104,7 @@ const CATEGORIES = [
   { id: 'melodic', label: 'melodic', sounds: MELODIC_SOUNDS },
   { id: 'percussion', label: 'percussion', sounds: PERCUSSION_SOUNDS },
   { id: 'atmospheric', label: 'atmospheric', sounds: ATMOSPHERIC_SOUNDS },
+  { id: 'candidates', label: 'candidates', sounds: CANDIDATE_SOUNDS },
 ] as const
 type CategoryId = (typeof CATEGORIES)[number]['id']
 
@@ -109,7 +120,7 @@ const PANEL = 'border border-[#2d3748] bg-white shadow-[3px_3px_0_#2d3748] p-3'
 const GROUP_LABEL = 'text-[9px] uppercase tracking-[0.25em] text-[#8595b5] leading-none'
 
 const isNoteMode = (category: CategoryId, sound: string) =>
-  category === 'synths' || PITCHED_SET.has(sound)
+  category === 'synths' || PITCHED_SET.has(sound) || CANDIDATE_PITCHED.has(sound)
 
 const defaultPattern = (sound: string, variant: number) =>
   `${sound}${variant > 0 ? `:${variant}` : ''}*4`
