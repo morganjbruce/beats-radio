@@ -446,43 +446,11 @@ export default function BeatsPlayer() {
     return () => clearInterval(id)
   }, [engineLive])
 
-  // Keep the playing row in view as the radio walks the queue. Scroll ONLY the list
-  // container — scrollIntoView walks every scrollable ancestor including the window,
-  // and on iOS Safari that pans the whole (overflow:hidden) page with no way back.
+  // Keep the playing row in view as the radio walks the queue.
   useEffect(() => {
     if (currentIdx < 0) return
-    const row = document.getElementById(`queue-row-${currentIdx}`)
-    const list = row?.parentElement
-    if (!row || !list) return
-    const rowRect = row.getBoundingClientRect()
-    const listRect = list.getBoundingClientRect()
-    if (rowRect.top < listRect.top) list.scrollTop += rowRect.top - listRect.top
-    else if (rowRect.bottom > listRect.bottom) list.scrollTop += rowRect.bottom - listRect.bottom
+    document.getElementById(`queue-row-${currentIdx}`)?.scrollIntoView({ block: 'nearest' })
   }, [currentIdx])
-
-  // iOS Safari can still pan the page itself (keyboard avoidance, overscroll quirks);
-  // with overflow:hidden there is no scrollbar to undo it, leaving the header stuck
-  // off-screen. Snap back whenever the window moves — except while the user is typing
-  // (e.g. in the Strudel editor), when the pan is the keyboard doing its job.
-  useEffect(() => {
-    const isEditing = () => {
-      const el = document.activeElement
-      return (
-        el instanceof HTMLElement &&
-        (el.isContentEditable || el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
-      )
-    }
-    const snapBack = () => {
-      if (!isEditing() && (window.scrollX !== 0 || window.scrollY !== 0)) window.scrollTo(0, 0)
-    }
-    window.addEventListener('scroll', snapBack)
-    // fires when the keyboard closes, after focus has already left the editor
-    window.visualViewport?.addEventListener('resize', snapBack)
-    return () => {
-      window.removeEventListener('scroll', snapBack)
-      window.visualViewport?.removeEventListener('resize', snapBack)
-    }
-  }, [])
 
   return (
     <div className="relative h-dvh overflow-hidden flex flex-col text-[#2d3748] font-mono" style={PAGE_BG}>
