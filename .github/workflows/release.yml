@@ -4,22 +4,22 @@ on:
   push:
     branches: [main]
 
-# One release at a time, in order — a queued release must see the previous bump commit.
+# One release at a time, in order — a queued release must see the previous tag.
 concurrency:
   group: release
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write # push release tags
   id-token: write # npm provenance
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Guard against re-triggering on the bump commit if it's ever pushed with a PAT.
-    if: "!startsWith(github.event.head_commit.message, 'chore(release)')"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so all release tags are available
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -38,26 +38,38 @@ jobs:
           bun run lint
           bun test
 
-      - name: Bump version
+      # Versions live in git tags, not package.json, so no commit is ever pushed
+      # to main (which branch protection would reject). Patch bump by default;
+      # put #minor or #major in the merge commit message to bump those instead.
+      - name: Compute next version
+        id: version
         run: |
+          latest="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+          latest="${latest:-v$(node -p "require('./package.json').version")}"
+          IFS=. read -r major minor patch <<< "${latest#v}"
           msg="$(git log -1 --pretty=%B)"
-          level=patch
           case "$msg" in
-            *"#major"*) level=major ;;
-            *"#minor"*) level=minor ;;
+            *"#major"*) major=$((major+1)); minor=0; patch=0 ;;
+            *"#minor"*) minor=$((minor+1)); patch=0 ;;
+            *)          patch=$((patch+1)) ;;
           esac
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          npm version "$level" -m "chore(release): v%s [skip ci]"
-
-      - name: Push bump commit and tag
-        run: git push --follow-tags origin HEAD:main
+          version="$major.$minor.$patch"
+          npm version "$version" --no-git-tag-version
+          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       # prepublishOnly runs `bun run build`, so the published package includes dist/.
       - name: Publish to npm
         run: npm publish --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Tag only after a successful publish, so tags always mean "published".
+      - name: Push release tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ steps.version.outputs.version }}" -m "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
