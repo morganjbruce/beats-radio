@@ -16,7 +16,7 @@ function runValidator(...args: string[]) {
 
 describe('validate-song.mjs', () => {
   test('passes a known-good real artifact', () => {
-    const r = runValidator(join(root, 'examples', 'radio', 'soft-compiler-5.mjs'))
+    const r = runValidator(join(root, 'examples', 'soft-compiler-5.mjs'))
     expect(r.stdout).toContain('OK')
     expect(r.exitCode).toBe(0)
   })
