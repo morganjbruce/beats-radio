@@ -528,11 +528,12 @@ export default function BeatsPlayer() {
                     onClick={() => setTextExpanded((e) => !e)}
                     aria-expanded={textExpanded}
                     title={textExpanded ? 'Show less' : 'Show the full description'}
-                    className={`max-w-2xl text-xs text-muted text-balance cursor-pointer transition-colors hover:text-muted-strong ${
-                      textExpanded ? '' : 'line-clamp-2'
-                    }`}
+                    className="max-w-2xl text-xs text-muted text-balance cursor-pointer transition-colors hover:text-muted-strong"
                   >
-                    {[nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · ')}
+                    {/* clamp lives on an inner span: iOS Safari ignores display:-webkit-box on <button> */}
+                    <span className={textExpanded ? '' : 'line-clamp-2'}>
+                      {[nowPlaying.genre, nowPlaying.mood].filter(Boolean).join(' · ')}
+                    </span>
                   </button>
                 )}
                 {(nowPlaying.author || nowPlaying.model) && (
