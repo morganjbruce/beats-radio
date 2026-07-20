@@ -4,29 +4,37 @@ on:
   push:
     branches: [main]
 
-# One release at a time, in order — a queued release must see the previous bump commit.
+# One release at a time, in order — a queued run must see the previous release's tag.
 concurrency:
   group: release
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: write # push the release commit + tag to main
   id-token: write # npm provenance
 
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Guard against re-triggering on the bump commit if it's ever pushed with a PAT.
+    # The release commit is pushed with RELEASE_TOKEN (see checkout), which re-triggers
+    # the workflow — so [skip ci] in the release commit message is what breaks the loop;
+    # this guard is a second net in case [skip ci] is ever dropped.
     if: "!startsWith(github.event.head_commit.message, 'chore(release)')"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # need full history + tags to compute the next version
+          # An admin PAT. Branch protection has "Include administrators" off, so a push
+          # authenticated as the repo admin bypasses the required "ci" status check —
+          # the default GITHUB_TOKEN (not an admin) cannot. Persisted for the push below.
+          token: ${{ secrets.RELEASE_TOKEN }}
 
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      # npm handles versioning + publish; setup-node writes the .npmrc auth config.
-      - uses: actions/setup-node@v4
+      # setup-node writes the .npmrc auth config and provides npm for publishing.
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           registry-url: https://registry.npmjs.org
@@ -38,26 +46,57 @@ jobs:
           bun run lint
           bun test
 
-      - name: Bump version
+      # Version is derived from the latest release tag (monotonic — it can never
+      # collide with an existing tag), falling back to package.json on first run.
+      # Patch by default; put #minor or #major in the merge commit message to override.
+      - name: Compute next version
+        id: version
         run: |
+          latest="$(git tag -l 'v*' --sort=-v:refname | head -n1)"
+          base="${latest#v}"
+          base="${base:-$(node -p "require('./package.json').version")}"
+          IFS='.' read -r major minor patch <<< "$base"
           msg="$(git log -1 --pretty=%B)"
-          level=patch
           case "$msg" in
-            *"#major"*) level=major ;;
-            *"#minor"*) level=minor ;;
+            *"#major"*) major=$((major+1)); minor=0; patch=0 ;;
+            *"#minor"*) minor=$((minor+1)); patch=0 ;;
+            *)          patch=$((patch+1)) ;;
           esac
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          npm version "$level" -m "chore(release): v%s [skip ci]"
+          echo "version=${major}.${minor}.${patch}" >> "$GITHUB_OUTPUT"
 
-      - name: Push bump commit and tag
-        run: git push --follow-tags origin HEAD:main
+      # Keep all three version-bearing files in lockstep: the npm package, the
+      # plugin manifest, and the skill frontmatter (the marketplace reads these on main).
+      - name: Stamp version into package.json, plugin, and skill
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          npm version "$VERSION" --no-git-tag-version --allow-same-version
+          tmp="$(mktemp)"
+          jq --arg v "$VERSION" '.version = $v' .claude-plugin/plugin.json > "$tmp"
+          mv "$tmp" .claude-plugin/plugin.json
+          sed -i -E "s/^version: .*/version: $VERSION/" skills/beats/SKILL.md
 
       # prepublishOnly runs `bun run build`, so the published package includes dist/.
       - name: Publish to npm
-        run: npm publish --provenance
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # Commit + tag only after a successful publish, so a tag always means "published".
+      # The push uses RELEASE_TOKEN (admin) to clear branch protection; [skip ci] in the
+      # message stops this push from re-triggering the workflow.
+      - name: Commit, tag, and push the release
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json .claude-plugin/plugin.json skills/beats/SKILL.md
+          git commit -m "chore(release): v${VERSION} [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          git tag -a "v${VERSION}" -m "v${VERSION}"
+          git push origin "v${VERSION}"
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
