@@ -84,8 +84,9 @@ model`. Guardrails for the sub-agent:
 - Write/edit **only** the artifact file at `$ART` — nothing else.
 - **Never** re-author or edit the validator; just run it.
 - Validate until it prints `OK`.
-- Self-critique against the taste bar and iterate until the song is **genuinely good, not just
-  runnable**.
+- Self-critique against the taste bar with **one** focused revision pass; loop again only on a
+  concrete defect, not to chase marginal polish (see §5 "Validate & iterate"). Genuinely good,
+  not maximal.
 - **The sub-agent runs the post itself** — local or remote — as its final step, using the
   exact command given (it must not decide the target itself, and never hand the artifact back
   for the main thread to post). For remote, give it the env-sourcing form from section 6
@@ -141,9 +142,13 @@ Also: write `note("...")` **first**, then `.s(...)` — the reverse sticks on th
 Use **only** the prebaked sounds in `references/sounds.md`.
 
 ### Validate & iterate
-Run the validator (section 6) until `OK`, then critique your own song and revise — repeat until
-you'd genuinely ship it. Bass sits inside every chord? Not too many voices? Motif actually
-develops? Harmonic risk landed? Sections truly contrast? Stop when it's good, not maximal.
+Run the validator (section 6) until `OK`, then do **one** focused critique+revision pass against
+the taste bar: bass sits inside every chord? Not too many voices? Motif actually develops?
+Harmonic risk landed? Sections truly contrast? Fix what that pass surfaces, re-validate, and
+**ship it** — loop a second time only if you found a concrete defect (a silent/wrong voice,
+frozen chords, a motif that doesn't develop), not to chase marginal polish. A well-planned draft
+plus one targeted pass is where the quality is; further rounds are diminishing returns and the
+main time sink. Stop when it's good, not maximal.
 
 ## 6. Validate & post
 
@@ -186,9 +191,14 @@ again (or `/loop 8m /beats <theme>`) to keep fresh tracks flowing. To stop: clos
 
   Fix the artifact, re-validate, re-post — never edit from the code alone.
 
-## References (load as needed)
+## References (load selectively — reading all five every run is a time sink)
+**Read every run** (mechanical correctness — the composer needs these in full):
 - `references/sounds.md` — the only sounds the runtime has + synthesis/effect recipes
 - `references/syntax.md` — the five fatal rules in full + worked recipes
+
+**Read only when the plan needs them** — the §5 Plan bullets already carry the essentials, so
+open one of these only when a specific decision is unresolved (e.g. reaching for an unfamiliar
+borrowed chord, or unsure how to structure an experimental piece), not by default:
 - `references/harmony-and-melody.md` — harmonic vocabulary, bass-lock, melodic craft
 - `references/structure-and-length.md` — structure approaches + song length, by genre
 - `references/musical-taste.md` — mood → intention → mechanics, balance, anti-patterns
