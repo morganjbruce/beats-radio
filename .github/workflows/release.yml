@@ -11,7 +11,7 @@ concurrency:
 
 permissions:
   contents: write # push the release commit + tag to main
-  id-token: write # npm provenance
+  id-token: write # npm Trusted Publishing (OIDC) + provenance
 
 jobs:
   release:
@@ -76,11 +76,14 @@ jobs:
           mv "$tmp" .claude-plugin/plugin.json
           sed -i -E "s/^version: .*/version: $VERSION/" skills/beats/SKILL.md
 
+      # Publish via npm Trusted Publishing (OIDC): no token needed — auth comes from
+      # the id-token permission — and provenance is generated automatically. Trusted
+      # publishing needs npm >= 11.5.1, newer than Node 22 ships, so upgrade the CLI.
       # prepublishOnly runs `bun run build`, so the published package includes dist/.
       - name: Publish to npm
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm install --global npm@latest
+          npm publish
 
       # Commit + tag only after a successful publish, so a tag always means "published".
       # The push uses RELEASE_TOKEN (admin) to clear branch protection; [skip ci] in the
