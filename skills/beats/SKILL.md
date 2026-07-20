@@ -73,14 +73,39 @@ export const author = '...'                // optional
 `genre`/`mood` are the song's liner notes — the player displays them, so make them rich. The
 CODE is the opposite: header 2–3 lines, one short label per section, no plan-in-comments.
 
-## 4. Compose — in a sub-agent when available
+## 4. Compose — plan high, implement in a faster sub-agent
 
-If your environment supports sub-agents (e.g. Claude Code's **Agent** tool), spawn a
-**backgrounded** composer and don't block the main thread on it. Give the sub-agent, verbatim
-in its prompt: this skill's composition process (section 5), the theme, the **exact `$ART`
-path**, the **exact post command** resolved in section 2/6, and the model id for `export const
-model`. Guardrails for the sub-agent:
+Split the work by where reasoning changes the music. **Planning** (harmony, motif, structure,
+taste) is where deep reasoning pays off; **implementation** (transcribing the plan into Strudel,
+the validate-fix loop, posting) is mechanical. Run them at different tiers so you're not paying
+for high reasoning on transcription.
 
+**Phase 1 — Plan, at high reasoning.** Do the full §5 *Plan* step yourself on the main thread, at
+the reasoning effort you were invoked with (e.g. opus high) — or, if you want it fully
+backgrounded, in a dedicated high-reasoning planner sub-agent. This is the one place the
+harmony/structure/taste references earn their keep — open them here when a decision is unresolved.
+Produce a compact **composition brief** the implementer can follow without re-planning:
+
+- title / genre / mood (the rich liner-note versions from §3)
+- structure map: each section, its cycle count, and the total `cycles`
+- harmony: the specific chords per section + the one deliberate risk, and the bass derivation
+- the motif (as notes) and exactly how it develops across sections
+- palette: the 5–6 sounds and the drum-machine `.bank()`
+- groove/tempo (`setcps`) and any effect intentions
+
+**Phase 2 — Implement, in a backgrounded faster sub-agent.** If your environment supports
+sub-agents (Claude Code's **Agent** tool), spawn a **backgrounded** composer on a **faster model**
+— `sonnet` (the medium tier: reliable at the fatal rules, much quicker than opus), or `haiku` for
+even faster when the brief is simple — and don't block the main thread on it. Give the sub-agent,
+verbatim: the **composition brief** from Phase 1, the §5 *Compose a FULL song* + *Validate &
+iterate* steps (the fatal rules), the **mechanical references only** (`sounds.md`, `syntax.md` —
+the harmonic/structural decisions are already made), the **exact `$ART` path**, the **exact post
+command** resolved in §2/6, and the model id for `export const model` (**the implementer's** model
+— whatever you spawned it as, since that's what generated the shipped code). Guardrails for the
+sub-agent:
+
+- Follow the brief — do **not** re-plan the harmony/structure/motif; transcribe and refine within
+  it. If the brief is genuinely unworkable, return that rather than silently redesigning.
 - Write/edit **only** the artifact file at `$ART` — nothing else.
 - **Never** re-author or edit the validator; just run it.
 - Validate until it prints `OK`.
@@ -94,7 +119,8 @@ model`. Guardrails for the sub-agent:
   token into the prompt.
 - Return a one-line summary: title / genre / mood / cycles / posted-to.
 
-If sub-agents aren't available, do the full process below inline.
+If sub-agents aren't available, do the full process below inline (plan, then compose) at your
+invoked reasoning tier.
 
 ## 5. The composition process — all four steps, in order
 
