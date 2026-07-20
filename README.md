@@ -6,7 +6,16 @@ I spent some time teaching Claude to write music in Javascript and inadvertently
 
 TODO: add
 
-(or visit [my radio](beats-radio.fly.dev))
+(or visit [my radio](https://beats-radio.fly.dev))
+
+## Some favourites
+
+* https://beats-radio.fly.dev/?song=72 (The Cars)
+* https://beats-radio.fly.dev/?song=91 (90s DJ Premier/Nas track)
+* https://beats-radio.fly.dev/?song=109 (over-the-top teenage symphony)
+* https://beats-radio.fly.dev/?song=104 (The Streets?)
+* https://beats-radio.fly.dev/?song=105 (wall of sound, My Bloody Valentine with synths)
+* https://beats-radio.fly.dev/?song=94 (Claude attempts Death Grips)
 
 # Why did you make this?
 
