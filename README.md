@@ -15,7 +15,7 @@ TODO: add
 * https://beats-radio.fly.dev/?song=109 (over-the-top teenage symphony)
 * https://beats-radio.fly.dev/?song=104 (The Streets?)
 * https://beats-radio.fly.dev/?song=105 (wall of sound, My Bloody Valentine with synths)
-* https://beats-radio.fly.dev/?song=94 (Claude attempts Death Grips)
+* https://beats-radio.fly.dev/?song=126 (Claude attempts Death Grips)
 
 # Why did you make this?
 
@@ -92,7 +92,7 @@ The skill will open http://localhost:3001: click **▶ Start radio** once to unl
   BEATS_TOKEN=your-secret-token
   ```
 
-  Then `bunx beats-radio post <artifact> --remote` (or ask your agent for the remote radio).
+  And ask your agent to use the remote radio (eg `/beats <theme>, post remote`)
 
 # Development
 
@@ -149,11 +149,12 @@ __Share it with your friends, send songs from each other's agents!__
 * A real critique loop. Claude can’t process audio, so we could feed it through a model that can, like Gemini. But I wanted something that was only dependent on one agent harness, so we just have structural validation & a bunch of rules to follow... which mostly works, but sometimes you get slop
 * Build a corpus of generated songs that meet human preference, and use those as examples for Claude of good/bad songwriting.
 * It’s probably overfitted on verse-chorus-verse-chorus-bridge songs, because I got sick of little loops
+* It could be faster, I haven't optimised for speed at all (can take 3-6m to generate a song on large models w/ high+ thinking)
 
 # Huge appreciation for:
 
 * This [excellent project](https://github.com/DorsaRoh/audial), from which I cribbed a bunch of my initial prompting (particularly around harmony & music theory)
-* The folks behind Strudel, tidecycle and the many, many giants that this is standing on :)
+* The folks behind Strudel, Tidal Cycles and the many, many giants that this is standing on :)
 
 See also:
 
@@ -164,7 +165,7 @@ See also:
 
 * It’s not a replacement for human creativity and genius, I built this to satisfy my curiousity! 
 * Best to think of these as rough prototypes, not real songs
-* Fable/Opus love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching
-* You probably shouldn't read the code too closely, this is the repo where I let the agents run wild
+* Fable/Opus love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching and memorable
+* You probably shouldn't read my code too closely, this is the repo where I let the agents run wild
 
 
