@@ -152,6 +152,7 @@ __Share it with your friends, send songs from each other's agents!__
 * Build a corpus of generated songs that meet human preference, and use those as examples for Claude of good/bad songwriting.
 * It’s probably overfitted on verse-chorus-verse-chorus-bridge songs, because I got sick of little loops
 * It could be faster, I haven't optimised for speed at all (can take 3-6m to generate a song on large models w/ high+ thinking)
+* 99.7FM Wu-Tang Claw?
 
 # Huge appreciation for:
 
@@ -167,7 +168,7 @@ See also:
 
 * It’s not a replacement for human creativity and genius, I built this to satisfy my curiousity! 
 * Best to think of these as rough prototypes, not real songs
-* Fable/Opus love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching and memorable
+* Fable/Opus love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching
 * You probably shouldn't read my code too closely, this is the repo where I let the agents run wild
 
 
