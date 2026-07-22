@@ -16,6 +16,8 @@ TODO: add
 * https://beats-radio.fly.dev/?song=104 (The Streets?)
 * https://beats-radio.fly.dev/?song=105 (wall of sound, My Bloody Valentine with synths)
 * https://beats-radio.fly.dev/?song=126 (Claude attempts Death Grips)
+* https://beats-radio.fly.dev/?song=31 (Chromatics inspired italo-disco)
+
 
 # Why did you make this?
 
