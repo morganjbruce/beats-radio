@@ -1,7 +1,7 @@
 ---
 name: beats
 description: Compose a full, arranged Strudel song and stream it to the browser radio player. Use whenever the user wants to generate, arrange, or fix music for the radio (e.g. /beats <theme>, "play something", "make a track").
-version: 0.2.9
+version: 0.2.10
 ---
 
 # Beats — compose a song and stream it to the radio
