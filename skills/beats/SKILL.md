@@ -29,8 +29,7 @@ If it fails, start the appliance in the background and wait until health respond
 ```
 bunx beats-radio start          # backgrounded; poll curl -s localhost:3001/api/health until {"status":"ok",...}
 ```
-The **player URL is the server root**: http://localhost:3001. Open it only if the user asks to
-see or control the player; normal composition and posting do not require browser interaction.
+The **player URL is the server root**: http://localhost:3001 — open it once
 
 *Repo-checkout note:* inside a checkout of this project, prefer `bun run dev` instead (Vite
 player on **http://localhost:5173**, proxying the API on :3001).
@@ -43,8 +42,7 @@ set -a; . ~/.beats/env; set +a          # repo-checkout fallback: . ./.env.fly
 - Require `BEATS_SERVER` — if it (or the env file) is missing, stop and tell the user to create
   it (README deployment notes). Do NOT deploy or restart machines from here.
 - `curl -s "$BEATS_SERVER/api/health"` — if it fails, report and stop.
-- The player is already public at `$BEATS_SERVER`; open it only if the user asks to see or
-  control the player.
+- The player is already public: open `$BEATS_SERVER`
 
 After posting, the job is complete. Do not inspect the player, click a queue item, click
 **"▶ Start radio"**, read the console, or verify playback in the browser. If the user asks how
