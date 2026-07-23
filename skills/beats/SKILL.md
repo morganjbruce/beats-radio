@@ -1,6 +1,6 @@
 ---
 name: beats
-description: Compose a full, arranged Strudel song and stream it to the browser radio player. Use whenever the user wants to generate, arrange, or fix music for the radio (e.g. /beats <theme>, "play something", "make a track").
+description: Compose a full, arranged Strudel song and stream it to the radio player. Use whenever the user wants to generate, arrange, or fix music for the radio (e.g. /beats <theme>, "play something", "make a track").
 version: 0.2.10
 ---
 
@@ -9,12 +9,13 @@ version: 0.2.10
 ## 1. What this is
 
 You are a versatile, eclectic music producer. Your job is to **compose one full, arranged
-Strudel song** on a theme and **stream it to the radio player** — a browser tab running the
-real Web Audio engine (so the full effect palette works: shape/crush/reverb/etc., no glitches).
+Strudel song** on a theme and **stream it to the radio player**. A browser player uses the
+real Web Audio engine (so the full effect palette works: shape/crush/reverb/etc., no glitches),
+but it is not part of normal validation.
 A song is not a 4–8 bar loop: it has real structure, a developed motif, and an arc.
 
-The radio is served by the `beats-radio` appliance. You drive it entirely through its CLI
-(`bunx beats-radio …`) plus browser inspection — you never re-implement its validator or server.
+The radio is served by the `beats-radio` appliance. Drive it through its CLI
+(`bunx beats-radio …`) — you never re-implement its validator or server.
 
 ## 2. Resolve the radio target
 
@@ -28,7 +29,7 @@ If it fails, start the appliance in the background and wait until health respond
 ```
 bunx beats-radio start          # backgrounded; poll curl -s localhost:3001/api/health until {"status":"ok",...}
 ```
-The **player URL is the server root**: http://localhost:3001 — open it once.
+The **player URL is the server root**: http://localhost:3001 — open it once
 
 *Repo-checkout note:* inside a checkout of this project, prefer `bun run dev` instead (Vite
 player on **http://localhost:5173**, proxying the API on :3001).
@@ -41,10 +42,12 @@ set -a; . ~/.beats/env; set +a          # repo-checkout fallback: . ./.env.fly
 - Require `BEATS_SERVER` — if it (or the env file) is missing, stop and tell the user to create
   it (README deployment notes). Do NOT deploy or restart machines from here.
 - `curl -s "$BEATS_SERVER/api/health"` — if it fails, report and stop.
-- The player is already public: open `$BEATS_SERVER`.
+- The player is already public: open `$BEATS_SERVER`
 
-Either way, tell the user to click **"▶ Start radio"** once in the player tab — browsers require
-one user gesture before audio can play.
+After posting, the job is complete. Do not inspect the player, click a queue item, click
+**"▶ Start radio"**, read the console, or verify playback in the browser. If the user asks how
+to listen, tell them to open the player and click **"▶ Start radio"** once; browsers require one
+user gesture before audio can play.
 
 ## 3. Pick a unique artifact path
 
@@ -90,7 +93,8 @@ model`. Guardrails for the sub-agent:
   exact command given (it must not decide the target itself, and never hand the artifact back
   for the main thread to post). For remote, give it the env-sourcing form from section 6
   (`--remote` / `. ./.env.fly`) — the command reads the config file itself; never paste the
-  token into the prompt.
+  token into the prompt. Posting is terminal: it must not inspect, select, or play the song in
+  the browser afterwards.
 - Return a one-line summary: title / genre / mood / cycles / posted-to.
 
 If sub-agents aren't available, do the full process below inline.
@@ -158,22 +162,25 @@ bunx beats-radio post "$ART" --remote        # REMOTE (reads ~/.beats/env for BE
 ```
 *Repo-checkout equivalents:* `bun scripts/validate-song.mjs "$ART"` and
 `bun scripts/post-song.mjs "$ART"` (remote: `set -a; . ./.env.fly; set +a; bun scripts/post-song.mjs "$ART"`).
-`post` forwards `model` and `prompt` to the server automatically. The server streams the song
-to the player tab, which plays it and advances after `cycles`.
+`post` forwards `model` and `prompt` to the server automatically. The server delivers the song
+to connected players. A successful post is the terminal action: do not use the browser to
+validate, select, start, or inspect the song afterwards.
 
 ## 7. Report
 
-Keep the final message short: what's now streaming (title / genre / cycles) and where (local or
-the remote radio), the one-time **"▶ Start radio"** click, and that they can run `/beats <theme>`
-again (or `/loop 8m /beats <theme>`) to keep fresh tracks flowing. To stop: close or mute the tab.
+Keep the final message short: what's now streaming (title / genre / cycles), where (local or the
+remote radio), and that they can run `/beats <theme>` again (or `/loop 8m /beats <theme>`) to
+keep fresh tracks flowing. Mention the one-time **"▶ Start radio"** click only if the user asks
+how to listen or reports that they cannot hear the track. To stop: close or mute the tab.
 
 ## 8. Troubleshooting
 
 - **Sounds authority:** `bunx beats-radio sounds` prints the exact prebaked inventory as JSON.
   `references/sounds.md` is the curated usage guidance.
-- **"It doesn't play" / "lots of errors" — read the player tab's console FIRST**, don't guess
-  from the code. *(Claude-specific:* drive Chrome via the claude-in-chrome MCP tools —
-  `tabs_context_mcp` to find the player tab, then `read_console_messages`.) Common errors:
+- **Only after the user reports that playback failed:** read the player tab's console first;
+  don't guess from the code. Do not select or restart songs while diagnosing. *(Claude-specific:*
+  drive Chrome via the claude-in-chrome MCP tools — `tabs_context_mcp` to find the player tab,
+  then `read_console_messages`.) Common errors:
 
   | Console error | Cause |
   |---|---|
