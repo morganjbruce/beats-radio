@@ -30,12 +30,12 @@ Example: `s("bd sd:2 bd cp").gain(0.8)`
 ## Drum banks (use `.bank()`) — PICK THE KIT BY GENRE
 71 classic drum machines are available; write generic voice names in `s()` and select the
 machine with `.bank()`. **Choose the kit like a producer choosing hardware for the session —
-the era/genre match matters as much as the pattern.** Defaulting everything to TR808/TR909
-(or the bare bank-less samples) is the drum equivalent of always writing I–V–vi–IV.
+the era/genre match matters as much as the pattern.** TR808 and TR909 both work well for hip-hop
+when their distinct character supports the track.
 
 | Genre / vibe | Reach for |
 |---|---|
-| Hip hop, boom bap, neo-soul | **EmuSP12** (dusty Pete Rock crunch), **AkaiMPC60** (mid-90s thump), MPC1000, OberheimDMX |
+| Hip hop, boom bap, neo-soul | **EmuSP12** (dusty crunch), **AkaiMPC60** (mid-90s thump), **RolandTR808** (deep low-end weight), **RolandTR909** (hard, punchy attack), MPC1000, OberheimDMX |
 | Electro, Miami bass, trap lineage | **RolandTR808** |
 | House, techno, French touch | **RolandTR909**, RolandTR707 |
 | Acid, minimal, early Aphex | **RolandTR606**, RolandTR505 |

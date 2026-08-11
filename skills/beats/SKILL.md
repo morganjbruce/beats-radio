@@ -114,7 +114,7 @@ If sub-agents aren't available, do the full process below inline.
 - **Melody** — ONE short motif and how it develops (transpose / invert / fragment / re-rhythm).
 - **Rhythm & cycle plan** — drums/tempo/groove, AND **which drum machine**: pick the `.bank()`
   by era/genre from the table in `references/sounds.md` like a producer choosing hardware —
-  defaulting to TR808/TR909 or the bank-less samples on an era piece is a red flag. Cycles per
+  TR808 and TR909 are valid hip-hop choices when their character fits the production. Cycles per
   section (**60–100+ total** for sectioned songs; distinct sections each repeated 8–16 cycles).
 
 ### Compose a FULL song
