@@ -20,7 +20,7 @@ Aim for an arc matched to the concept's energy: **intro** (establish groove, set
 - Stack patterns of different lengths that phase over time: `stack(note("c e g").s("piano"), note("d f a b").s("sine"))` (3 vs 4).
 - Best for: experimental, ambient, Steve-Reich-style phasing.
 
-### Approach 4: probabilistic variation — organic randomness
+### Approach 4: probabilistic variation — seasoning, not a standalone structure
 - `.sometimes()`, `.rarely()`, `.often()`: `s("bd sd").sometimes(x => x.fast(2))`
 - Best as a seasoning on Approaches 1–3, not a structure by itself.
 
@@ -31,7 +31,9 @@ A continuously-evolving single pattern and a slowcat-arranged sectioned song are
 ## Song length
 
 ### Sectioned songs (Approach 1)
-- Target 3–4 minutes: **60–100+ total cycles**; each section 8–16 cycles.
+- Choose the target duration first, then calculate `cycles ≈ target seconds × cps`. For example,
+  `setcps(90/60/4)` is 0.375 cps, so 68 cycles is about 3 minutes and 90 cycles is 4 minutes.
+- Main sections usually last 8–16 cycles; intros, outros, and transitions may last 4–8.
 - Lay the arrangement out as a cycle plan and spread it:
 ```js
 const PLAN = [
@@ -46,7 +48,7 @@ slowcat(...PLAN.flatMap(([seg, n]) => Array.from({ length: n }, (_, k) => seg(k)
 ```
 
 ### Evolving / generative songs (Approaches 2–4)
-- Length is driven by gradual change rather than section counts — 1–2 minutes is fine if the vibe is minimal/experimental. Still shape a beginning, development, and end.
+- Length is driven by gradual change rather than section counts — 1–2 minutes is fine if the vibe is minimal/experimental. Still shape a beginning, development, and end, and derive `cycles` from the target duration and cps.
 
 ### The `cycles` artifact field
-`cycles` = the full arranged length (for slowcat songs, the total number of entries). The radio player advances to the next track on the cycle boundary after that count.
+`cycles` is the playback horizon: for `slowcat` songs it is the total number of entries; for continuously evolving songs it is `target seconds × cps`. The radio player advances on the cycle boundary after that count.
