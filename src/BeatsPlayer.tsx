@@ -1,6 +1,12 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Visualizer, EngineLoading } from './components'
-import type { StrudelAdapter } from './components'
+import {
+  Visualizer,
+  EngineLoading,
+  VISUALIZER_MODES,
+  VISUALIZER_MODE_LABELS,
+  VISUALIZER_MODE_STORAGE_KEY,
+} from './components'
+import type { StrudelAdapter, VisualizerMode } from './components'
 import type { BeatsSong } from './types'
 
 // lazy so the Strudel/CodeMirror graph (>500kB) only downloads on the Start click
@@ -156,6 +162,12 @@ export default function BeatsPlayer() {
   // `started` never reverts.
   const [queueOpen, setQueueOpen] = useState(false)
   const [engineOpen, setEngineOpen] = useState(false)
+  const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>(() => {
+    const saved = localStorage.getItem(VISUALIZER_MODE_STORAGE_KEY)
+    return (VISUALIZER_MODES as readonly string[]).includes(saved ?? '')
+      ? (saved as VisualizerMode)
+      : 'spectrum'
+  })
 
   const adapterRef = useRef<StrudelAdapter | null>(null)
   // refs mirror queue/index/paused for the advance interval + SSE + gap-timer closures
@@ -178,6 +190,18 @@ export default function BeatsPlayer() {
   // tap the title/description to lift their line clamps and read the full copy;
   // collapses again when the track changes
   const [textExpanded, setTextExpanded] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem(VISUALIZER_MODE_STORAGE_KEY, visualizerMode)
+  }, [visualizerMode])
+
+  const cycleVisualizerMode = useCallback(() => {
+    setVisualizerMode(current =>
+      VISUALIZER_MODES[
+        (VISUALIZER_MODES.indexOf(current) + 1) % VISUALIZER_MODES.length
+      ],
+    )
+  }, [])
   useEffect(() => setTextExpanded(false), [currentIdx])
 
   // Copy a permalink to the current song to the clipboard; fall back to navigating to
@@ -465,6 +489,14 @@ export default function BeatsPlayer() {
           >
             beats
           </span>
+          <button
+            onClick={cycleVisualizerMode}
+            aria-label={`Change visualization mode. Current mode: ${VISUALIZER_MODE_LABELS[visualizerMode]}`}
+            title="Change visualization"
+            className="min-w-0 truncate text-[9px] uppercase tracking-[0.16em] text-faint hover:text-brand focus:outline-none focus-visible:text-brand transition-colors"
+          >
+            · {VISUALIZER_MODE_LABELS[visualizerMode]} ·
+          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -498,6 +530,8 @@ export default function BeatsPlayer() {
           seamless
           sub={6}
           idleAnimation={false}
+          mode={visualizerMode}
+          onModeChange={setVisualizerMode}
         />
       </div>
 
