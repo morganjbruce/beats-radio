@@ -108,20 +108,15 @@ A variable holding a note/chord becomes a pattern; interpolating it into a templ
 stringifies the pattern into invalid mini-notation → `[mini] parse error`, silence.
 
 **Wrong:** ``note(`${n} ~ ~ ${n}`)``
-**Correct:** `note(m(phrase)).struct("x ~ ~ x")` — mini-notation strings are always literal
-text; the variable goes through `note(m(...))`, the rhythm through a literal `.struct()`.
+**Correct:** `note(m(phrase)).struct("x ~ ~ x")` — mini-notation strings are always literal text; the variable goes through `note(m(...))`, the rhythm through a literal `.struct()`.
 
 ## 5. Never shadow `m` or other builtins
 
-The transpiler rewrites every quoted string into a call to `m(...)`, and rule 1 has you
-calling `m()` yourself — a variable or parameter named `m` shadows it and every string in
-scope throws "m is not a function". Also avoid naming anything `n`, `s`, `note`, `stack`,
-`sound`, `slowcat`. Prefer `phrase`, `chord`, `root`, `voice`.
+The transpiler rewrites every quoted string into a call to `m(...)`, and rule 1 has you calling `m()` yourself — a variable or parameter named `m` shadows it and every string in scope throws "m is not a function". Also avoid naming anything `n`, `s`, `note`, `stack`,`sound`, `slowcat`. Prefer `phrase`, `chord`, `root`, `voice`.
 
 ---
 
 ## Minor rules
 
-- `note()` first, then `.s()`: `note("c4 e4 g4").s("piano")`. The reverse
-  (`s("piano").note(...)`) sticks on the first note. Effects chain after: `.gain(0.5).room(0.6)`.
+- `note()` first, then `.s()`: `note("c4 e4 g4").s("piano")`. The reverse (`s("piano").note(...)`) sticks on the first note. Effects chain after: `.gain(0.5).room(0.6)`.
 - Rests with `~`: `note("c4 ~ e4 ~")`. Repetition with `[...]*n`: `note("[c4 e4 g4]*2")`.

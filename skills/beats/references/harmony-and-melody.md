@@ -31,19 +31,15 @@ tones) — avoid random chromatic notes that clash.
 
 ### Lock the bass to the harmony (the #1 alignment failure)
 The bass is the ear's reference for the chord — a bass note that isn't in the current chord makes
-the whole harmony sound "wrong," even when the chords themselves are good. Derive the bass FROM the
-progression; do not compose a "melodic bassline" independently and hope it fits.
+the whole harmony sound "wrong," even when the chords themselves are good. Derive the bass FROM the progression; do not compose a "melodic bassline" independently and hope it fits.
+
 - Pull the bass from the SAME progression that drives the chords (same array, same index). Its
   default note is the chord ROOT; use the 5th, 3rd, or octave for movement.
-- Any non-chord bass note must be a brief passing/approach tone that lands on a chord tone on the
-  next strong beat — never let the bass sit or land on a note outside the current chord.
-- A non-root bass is fine when it's a CHOSEN inversion/slash chord (e.g. `"e2"` under C = C/E),
-  named in your plan — not an accident of an independently-written line.
-- Test it: mentally play the bass against each chord of the progression. If any bar clashes, fix
-  the bass, not the chord.
+- Any non-chord bass note must be a brief passing/approach tone that lands on a chord tone on the next strong beat — never let the bass sit or land on a note outside the current chord.
+- A non-root bass is fine when it's a CHOSEN inversion/slash chord (e.g. `"e2"` under C = C/E), named in your plan — not an accident of an independently-written line.
+- Test it: mentally play the bass against each chord of the progression. If any bar clashes, fix the bass, not the chord.
 
 ---
-
 ## Writing melodies with craft (not scale runs)
 A predictable melody is the #1 thing that makes a song feel generic. Avoid stepwise diatonic runs
 and aimless wandering. Apply these when the genre calls for melodic content:
