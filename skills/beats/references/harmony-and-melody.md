@@ -1,8 +1,9 @@
 # Harmony & melody
 
 ## Why harmony matters
-A good song prioritizes, in order: **harmony → rhythm → texture → atmosphere**. Drums alone do
-not make music; a beat without harmony is a demo, not a song.
+Harmony needs an intentional role appropriate to the genre. In harmony-led music it may carry the
+song; in rhythm-led, modal, or hypnotic music it may be a static vamp, pedal, or tonal center. It
+does not need frequent chord changes, but the pitched voices still need a coherent relationship.
 
 Harmony must be intentional and cohesive — but intentional does not mean obvious, and clarity
 does not mean predictability. Choose harmony that fits the concept rather than reaching for the
@@ -29,21 +30,18 @@ note("c3 e3 g3 c4 g3 e3").fast(2)
 Keep the scale consistent across voices (if the harmony is C major, bass and pads use C-major
 tones) — avoid random chromatic notes that clash.
 
-### Lock the bass to the harmony (the #1 alignment failure)
-The bass is the ear's reference for the chord — a bass note that isn't in the current chord makes
-the whole harmony sound "wrong," even when the chords themselves are good. Derive the bass FROM the
-progression; do not compose a "melodic bassline" independently and hope it fits.
-- Pull the bass from the SAME progression that drives the chords (same array, same index). Its
-  default note is the chord ROOT; use the 5th, 3rd, or octave for movement.
-- Any non-chord bass note must be a brief passing/approach tone that lands on a chord tone on the
-  next strong beat — never let the bass sit or land on a note outside the current chord.
-- A non-root bass is fine when it's a CHOSEN inversion/slash chord (e.g. `"e2"` under C = C/E),
-  named in your plan — not an accident of an independently-written line.
-- Test it: mentally play the bass against each chord of the progression. If any bar clashes, fix
-  the bass, not the chord.
+### Lock the bass to the harmonic plan (the #1 alignment failure)
+The bass is the ear's harmonic reference. Derive it from the same progression, vamp, or pedal plan
+as the other pitched voices; do not compose an independent bassline and merely hope it fits.
+
+- For chord progressions, pull the bass from the SAME progression that drives the chords (same
+  array, same index). Its default note is the chord ROOT; use the 5th, 3rd, or octave for movement.
+- Non-chord bass notes are normally brief passing/approach tones that resolve on the next strong beat.
+- A sustained non-chord bass is valid when it is a deliberate pedal point whose tension and release are part of the harmonic plan.
+- A non-root bass is valid when it is a chosen inversion/slash chord (e.g. `"e2"` under C = C/E), not an accident of an independently written line.
+- Test the bass against every chord. If a clash is not intentional, adjust the bass, voicing, or progression.
 
 ---
-
 ## Writing melodies with craft (not scale runs)
 A predictable melody is the #1 thing that makes a song feel generic. Avoid stepwise diatonic runs
 and aimless wandering. Apply these when the genre calls for melodic content:
@@ -83,8 +81,9 @@ but do NOT cram in a long stepwise scale run:
 - Minor seventh: `"c3,eb3,g3,bb3"` (Cm7)
 
 **Go beyond the obvious progression.** The default I–V–vi–IV (C–G–Am–F) and i–bVI–bIII–bVII loops
-are clichés — avoid them unless the genre genuinely demands that simplicity. Aim for at least one
-non-diatonic or borrowed chord per progression. Reach for, AS FITS THE GENRE:
+are clichés — avoid them unless the genre genuinely demands that simplicity. Give each progression
+or vamp at least one distinctive harmonic decision; that does not have to be a non-diatonic chord.
+Reach for, AS FITS THE GENRE:
 - **Modal color** — pick a mode (Dorian, Phrygian, Lydian, Mixolydian), not just plain major/minor.
 - **Modal interchange / borrowed chords** — bVII, bVI, iv-in-major, the Mixolydian bVII.
 - **Secondary dominants** — V/vi, V/V to pull toward a target chord.

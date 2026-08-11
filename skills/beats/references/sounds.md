@@ -1,8 +1,8 @@
 # Sounds & synthesis
 
-Use **only** the sounds below — these are exactly what the player runtime prebakes.
-Anything else will silently fail to load. `bunx beats-radio sounds` prints the
-authoritative machine-readable inventory; this file is the curated usage guidance.
+This file is the **generation allowlist**: use only the sounds and drum banks approved below.
+The runtime may load additional sounds for compatibility, but generated songs must not select
+them. `bunx beats-radio sounds` prints the authoritative machine-readable runtime inventory.
 
 ## Synth waveforms (use with `note().s()`)
 - **sine** — smooth, pure tone (sub bass, soft leads)
@@ -28,10 +28,10 @@ Example: `note("c3 e3 g3").s("sawtooth").lpf(800).gain(0.5)`
 Example: `s("bd sd:2 bd cp").gain(0.8)`
 
 ## Drum banks (use `.bank()`) — PICK THE KIT BY GENRE
-71 classic drum machines are available; write generic voice names in `s()` and select the
-machine with `.bank()`. **Choose the kit like a producer choosing hardware for the session —
-the era/genre match matters as much as the pattern.** TR808 and TR909 both work well for hip-hop
-when their distinct character supports the track.
+The runtime exposes 71 classic drum machines; generated songs may use only the banks named in the
+table below. Write generic voice names in `s()` and select the machine with `.bank()`. **Choose the
+kit like a producer choosing hardware for the session — the era/genre match matters as much as the
+pattern.**
 
 | Genre / vibe | Reach for |
 |---|---|
@@ -57,8 +57,7 @@ Example: `s("bd ~ sd ~").bank("EmuSP12")` + `s("~ cp ~ cp").bank("LinnDrum")`
 
 ## Melodic samples (use with `note().s()`)
 - **piano** — acoustic piano (the default for chordal/melodic piano parts)
-- **steinway** — grand piano. Sparsely sampled — warbles on dense/extended chords; prefer
-  `piano` for chords, save `steinway` for sparse single-note lines if at all
+- **steinway** — grand piano. Sparsely sampled — warbles on dense/extended chords; prefer `piano` for chords, save `steinway` for sparse single-note lines if at all
 - **rhodes** — warm electric piano (soul, jazz, lo-fi, neo-soul)
 - **marimba** — warm wooden mallet
 - **vibraphone** — jazz vibes. VERY loud — keep gain ≤ 0.25, e.g. `.s("vibraphone").gain(0.2)`
@@ -86,10 +85,7 @@ Example: `note("c4 e4 g4").s("vibraphone").room(0.6).gain(0.2)`
 These are banned — never select them, even if the genre seems to call for one:
 - **sax** — the sample sounds bad. For a sax-like lead, use a triangle/sawtooth lead shaped with `lpf`.
 - **vinyl** — the crackle sample sounds bad. For lo-fi texture, use lightly-filtered `noise` at low gain.
-- **vocal samples** (`yeah`, `miniyeah`, `bev`, `ade`, `speech`, `alphabet`, `numbers`, `mouth`,
-  `speakspell`, etc.) — tried and cut: the short ones are ~20ms blips, the long phrases chop
-  awkwardly. For a vocal-ish hook, SYNTHESIZE it: formant-style bandpassed sawtooth/square stabs
-  (`.hpf(300–500)` + `.lpf(900–1600)` + `.resonance(10–16)`, pluck envelope, `.vib(5).vmod(0.08)`).
+- **vocal samples** (`yeah`, `miniyeah`, `bev`, `ade`, `speech`, `alphabet`, `numbers`, `mouth`,  `speakspell`, etc.) — tried and cut: the short ones are ~20ms blips, the long phrases chop awkwardly. For a vocal-ish hook, SYNTHESIZE it: formant-style bandpassed sawtooth/square stabs (`.hpf(300–500)` + `.lpf(900–1600)` + `.resonance(10–16)`, pluck envelope, `.vib(5).vmod(0.08)`).
 
 ---
 
@@ -118,7 +114,7 @@ Strudel has limited samples — create timbres with synthesis.
 ## Key effects for shaping sound
 - `.lpf(freq)` low-pass (warmth/darkness) · `.hpf(freq)` high-pass (removes mud)
 - `.resonance(amt)` filter resonance · `.shape(amt)` soft saturation (0–1) · `.distort(amt)` harder
-- `.room(amt)` reverb (0–1) · `.delay(time)` echo
+- `.room(amt)` reverb (typically 0–1; up to 1.5 for deliberately heavy ambient space) · `.delay(time)` echo
 - `.attack/.decay/.sustain/.release` envelope · `.pan(pos)` (-1..1) · `.gain(level)` (typ. 0.3–0.8)
 - `.vib(freq)` vibrato rate (4–6 Hz) · `.vmod(amt)` vibrato depth (0.05–0.15) · `.velocity(amt)`
 
