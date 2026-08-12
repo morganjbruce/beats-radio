@@ -3,7 +3,6 @@ import {
   Visualizer,
   EngineLoading,
   VISUALIZER_MODES,
-  VISUALIZER_MODE_LABELS,
   VISUALIZER_MODE_STORAGE_KEY,
 } from './components'
 import type { StrudelAdapter, VisualizerMode } from './components'
@@ -195,13 +194,6 @@ export default function BeatsPlayer() {
     localStorage.setItem(VISUALIZER_MODE_STORAGE_KEY, visualizerMode)
   }, [visualizerMode])
 
-  const cycleVisualizerMode = useCallback(() => {
-    setVisualizerMode(current =>
-      VISUALIZER_MODES[
-        (VISUALIZER_MODES.indexOf(current) + 1) % VISUALIZER_MODES.length
-      ],
-    )
-  }, [])
   useEffect(() => setTextExpanded(false), [currentIdx])
 
   // Copy a permalink to the current song to the clipboard; fall back to navigating to
@@ -480,7 +472,7 @@ export default function BeatsPlayer() {
     <div className="relative h-dvh overflow-hidden flex flex-col text-ink font-mono" style={PAGE_BG}>
       {/* slim header: wordmark + ON AIR lamp on the left, drawer chips on the right */}
       <header className="flex items-center justify-between gap-3 px-4 h-12 shrink-0 bg-white/85 backdrop-blur-sm border-b border-faint z-30">
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center min-w-0">
           {/* the wordmark IS the on-air lamp: red while songs play, ink when paused/idle */}
           <span
             className={`font-bold tracking-[0.25em] text-sm uppercase leading-none transition-colors duration-300 ${
@@ -489,14 +481,6 @@ export default function BeatsPlayer() {
           >
             beats
           </span>
-          <button
-            onClick={cycleVisualizerMode}
-            aria-label={`Change visualization mode. Current mode: ${VISUALIZER_MODE_LABELS[visualizerMode]}`}
-            title="Change visualization"
-            className="min-w-0 truncate text-[9px] uppercase tracking-[0.16em] text-faint hover:text-brand focus:outline-none focus-visible:text-brand transition-colors"
-          >
-            · {VISUALIZER_MODE_LABELS[visualizerMode]} ·
-          </button>
         </div>
         <div className="flex items-center gap-2">
           <button
