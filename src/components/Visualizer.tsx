@@ -5,17 +5,17 @@ import { useAnalyser } from './visualizer/engine/useAnalyser'
 import { useLedGrid } from './visualizer/engine/useLedGrid'
 import { useVisualizerLoop } from './visualizer/engine/useVisualizerLoop'
 import { MODE_LABELS, MODES, type Mode } from './visualizer/modes'
+import type { MusicTiming } from './visualizer/types'
 
 interface VisualizerProps {
   audioContext: AudioContext | null
   sourceNode: AudioNode | null
   isPlaying: boolean
+  getMusicTiming?: () => MusicTiming | null
   /** Override the default height/sizing classes (e.g. for a full-width hero). */
   sizeClass?: string
   /** Blend into the page: no border/shadow, transparent panel (only lit LEDs draw). */
   seamless?: boolean
-  /** Show the idle "scanner" animation when nothing is playing (default true). */
-  idleAnimation?: boolean
   /** When paused, freeze the last frame instead of fading to blank. */
   paused?: boolean
   /** Internal render resolution per cell, in px (default 4). */
@@ -34,9 +34,9 @@ export function Visualizer({
   audioContext,
   sourceNode,
   isPlaying,
+  getMusicTiming,
   sizeClass,
   seamless,
-  idleAnimation,
   paused,
   sub: subProp,
   mode,
@@ -56,27 +56,32 @@ export function Visualizer({
     grid,
     sub,
     seamless,
-    idleAnimation,
     paused,
     isPlaying,
+    getMusicTiming,
     mode,
   })
 
-  const cycleMode = useCallback(() => {
-    onModeChange(MODES[(MODES.indexOf(mode) + 1) % MODES.length])
+  const cycleMode = useCallback((direction: -1 | 1 = 1) => {
+    onModeChange(MODES[(MODES.indexOf(mode) + direction + MODES.length) % MODES.length])
   }, [mode, onModeChange])
 
   return (
     <section
       role="button"
       tabIndex={0}
-      aria-label={`Music visualizer (${MODE_LABELS[mode]} mode) — click to change mode`}
-      title={`${MODE_LABELS[mode]} — click to change visualization`}
-      onClick={cycleMode}
+      aria-label={`Music visualizer (${MODE_LABELS[mode]} mode) — left for previous, right for next visualization`}
+      aria-keyshortcuts="ArrowLeft ArrowRight"
+      title={`${MODE_LABELS[mode]} — click left for previous, right for next visualization`}
+      onClick={event => {
+        const { left, width } = event.currentTarget.getBoundingClientRect()
+        // Assistive activation has no pointer location and advances like Enter.
+        cycleMode(event.detail > 0 && event.clientX < left + width / 2 ? -1 : 1)
+      }}
       onKeyDown={event => {
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (['ArrowLeft', 'ArrowRight', 'Enter', ' '].includes(event.key)) {
           event.preventDefault()
-          cycleMode()
+          cycleMode(event.key === 'ArrowLeft' ? -1 : 1)
         }
       }}
       className={`${sizeClass ?? 'flex-shrink-0 h-20 md:h-28'} ${seamless ? '' : 'border-b border-faint'} select-none cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-faint`}

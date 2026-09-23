@@ -1,5 +1,6 @@
 import { bassEnergy, magnitude, overallEnergy } from '../audioMetrics'
 import type { ModeRenderer } from '../types'
+import { fineDisc } from './finePixels'
 
 const JAPAN_SKY = ['#f4d8cf', '#efd8d9', '#d9d9e8', '#b9cee0']
 const JAPAN_MOUNTAIN = '#536782'
@@ -19,6 +20,7 @@ interface Petal {
 }
 
 export const createJapanMode = (): ModeRenderer => {
+  const scale = 2
   let sceneTime = 0
   let petals: Petal[] = []
 
@@ -51,15 +53,11 @@ export const createJapanMode = (): ModeRenderer => {
 
       const sunX = Math.round(cols * 0.72)
       const sunY = Math.round(rows * 0.72)
-      const sunRadius = Math.max(2, Math.round(rows * 0.09 + bass))
-      for (let row = sunY - sunRadius; row <= sunY + sunRadius; row++) {
-        const half = Math.sqrt(Math.max(0, sunRadius * sunRadius - (row - sunY) ** 2))
-        for (let column = Math.ceil(sunX - half); column <= Math.floor(sunX + half); column++)
-          cell(column, row, '#d9695f')
-      }
+      const sunRadius = Math.max(2, Math.round(rows * 0.09 + bass * scale))
+      fineDisc(cell, sunX, sunY, sunRadius, () => '#d9695f')
       for (let column = 0; column < cols; column++) {
         const hill =
-          horizon + 1 + Math.round((Math.sin(column * 0.18) + 1) * rows * 0.035)
+          horizon + 1 + Math.round((Math.sin(column * 0.18 / scale) + 1) * rows * 0.035)
         for (let row = horizon; row <= hill; row++) cell(column, row, JAPAN_FAR)
       }
 
@@ -73,14 +71,15 @@ export const createJapanMode = (): ModeRenderer => {
         const edge = Math.abs(column - centerX) / mountainHalf
         const top = Math.round(horizon + (peakY - horizon) * (1 - edge))
         for (let row = horizon; row <= top; row++) {
-          const snowLine =
-            peakY - rows * 0.1 - Math.abs(column - centerX) * 0.15 + ((column * 5) % 3)
-          cell(column, row, row >= snowLine ? JAPAN_SNOW : JAPAN_MOUNTAIN)
+          const snowLine = peakY - rows * 0.1 - Math.abs(column - centerX) * 0.15
+            + (Math.sin(column * 0.43) * 2 + Math.sin(column * 0.17) * 3)
+          const color = row >= snowLine ? JAPAN_SNOW : JAPAN_MOUNTAIN
+          cell(column, row, color)
         }
         const reflectionDepth = top - horizon
         for (let depth = 1; depth <= reflectionDepth && horizon - depth >= 0; depth++) {
           const wave = Math.round(
-            Math.sin(depth * 1.7 + sceneTime * 0.08) * (1 + energy * 3),
+            Math.sin(depth * 1.7 / scale + sceneTime * 0.08) * (1 + energy * 3) * scale,
           )
           if (
             (column + depth + Math.floor(sceneTime * 0.04)) %
@@ -111,18 +110,23 @@ export const createJapanMode = (): ModeRenderer => {
 
       const gateX = Math.round(cols * 0.82)
       const gateHeight = Math.max(4, Math.round(rows * 0.13))
-      line(gateX - 3, horizon, gateX - 3, horizon + gateHeight, JAPAN_RED)
-      line(gateX + 3, horizon, gateX + 3, horizon + gateHeight, JAPAN_RED)
-      line(gateX - 5, horizon + gateHeight, gateX + 5, horizon + gateHeight, JAPAN_RED)
+      line(gateX - 3 * scale, horizon, gateX - 3 * scale, horizon + gateHeight, JAPAN_RED)
+      line(gateX + 3 * scale, horizon, gateX + 3 * scale, horizon + gateHeight, JAPAN_RED)
+      line(gateX - 5 * scale, horizon + gateHeight, gateX + 5 * scale, horizon + gateHeight, JAPAN_RED)
       line(
-        gateX - 4,
-        horizon + gateHeight - 2,
-        gateX + 4,
-        horizon + gateHeight - 2,
+        gateX - 4 * scale,
+        horizon + gateHeight - 2 * scale,
+        gateX + 4 * scale,
+        horizon + gateHeight - 2 * scale,
         JAPAN_RED,
       )
+      line(gateX - 6, horizon, gateX - 5, horizon + gateHeight, JAPAN_RED)
+      line(gateX + 6, horizon, gateX + 5, horizon + gateHeight, JAPAN_RED)
+      line(gateX - 9, horizon + gateHeight + 1, gateX + 9, horizon + gateHeight + 1, JAPAN_INK)
+      cell(gateX - 10, horizon + gateHeight + 1, JAPAN_INK)
+      cell(gateX + 10, horizon + gateHeight + 1, JAPAN_INK)
 
-      const bend = Math.sin(sceneTime * 0.025) * 2
+      const bend = Math.sin(sceneTime * 0.025) * 2 * scale
       line(0, rows - 2, cols * 0.18, rows * 0.79 + bend, JAPAN_INK)
       line(cols * 0.1, rows * 0.87, cols * 0.28, rows * 0.9 + bend, JAPAN_INK)
       line(cols * 0.13, rows * 0.84, cols * 0.22, rows * 0.71 + bend, JAPAN_INK)
@@ -133,8 +137,8 @@ export const createJapanMode = (): ModeRenderer => {
           petals.push({
             x: cols * (0.08 + Math.random() * 0.25),
             y: rows * (0.72 + Math.random() * 0.24),
-            vx: 0.18 + treble * 0.8 + Math.random() * 0.25,
-            vy: -0.03 - Math.random() * 0.08,
+            vx: (0.18 + treble * 0.8 + Math.random() * 0.25) * scale,
+            vy: (-0.03 - Math.random() * 0.08) * scale,
             phase: Math.random() * Math.PI * 2,
           })
       }
@@ -145,6 +149,8 @@ export const createJapanMode = (): ModeRenderer => {
         const row = Math.round(petal.y)
         if (column >= 0 && column < cols && row >= 0 && row < rows) {
           cell(column, row, BLOSSOM[Math.abs(Math.floor(petal.phase * 2)) % BLOSSOM.length])
+          cell(column - 1, row, BLOSSOM[0])
+          cell(column + 1, row, BLOSSOM[1])
           if (flash > 0 && column + 1 < cols) cell(column + 1, row, BLOSSOM[0])
         }
       }
