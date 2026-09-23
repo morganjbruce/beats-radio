@@ -1,5 +1,7 @@
 import { magnitude, overallEnergy } from '../audioMetrics'
 import type { ModeRenderer } from '../types'
+import { fineDisc, FINE_PIXEL_SIZE } from './finePixels'
+import { createCityScroll } from './cityScroll'
 
 const CITY_GRID = '#050914'
 const CITY_SKY = ['#29469a', '#25418f', '#203a82', '#1b3374', '#162b64', '#101f4e']
@@ -25,34 +27,32 @@ interface Building {
 type FarBuilding = Omit<Building, 'band'>
 
 export const createNeonCityMode = (): ModeRenderer => {
-  let scroll = 0
+  const scale = 2
+  const motion = createCityScroll()
   let loopWidth = 0
   let buildings: Building[] = []
-  let farScroll = 0
   let farLoopWidth = 0
   let farBuildings: FarBuilding[] = []
-  let cloudScroll = 0
 
   return {
     resize: ({ cols, rows }) => {
+      const baseRows = rows / scale
       buildings = []
       farBuildings = []
-      scroll = 0
-      farScroll = 0
-      cloudScroll = 0
+      motion.reset()
 
-      const targetWidth = Math.max(cols + 24, Math.round(cols * 1.3))
+      const targetWidth = Math.max(cols + 24 * scale, Math.round(cols * 1.3))
       let x = 0
       let index = 0
       while (x < targetWidth) {
         const seed = (index * 37 + 17) % 97
-        const width = 4 + (seed % 6)
-        const minHeight = Math.max(4, Math.round(rows * 0.18))
-        const range = Math.max(5, Math.round(rows * 0.58))
+        const width = (4 + (seed % 6)) * scale
+        const minHeight = Math.max(4, Math.round(baseRows * 0.18))
+        const range = Math.max(5, Math.round(baseRows * 0.58))
         const height = Math.min(
-          rows - 4,
+          baseRows - 4,
           seed % 5 === 0 ? minHeight : minHeight + ((seed * 11) % range),
-        )
+        ) * scale
         buildings.push({
           x,
           w: width,
@@ -61,20 +61,20 @@ export const createNeonCityMode = (): ModeRenderer => {
           seed,
           band: index % 12,
         })
-        x += width + (seed % 4 === 0 ? 1 : 0)
+        x += width + (seed % 4 === 0 ? scale : 0)
         index++
       }
       loopWidth = x
 
-      const farTargetWidth = Math.max(cols + 18, Math.round(cols * 1.2))
+      const farTargetWidth = Math.max(cols + 18 * scale, Math.round(cols * 1.2))
       let farX = 0
       let farIndex = 0
       while (farX < farTargetWidth) {
         const seed = (farIndex * 29 + 11) % 83
-        const width = 3 + (seed % 5)
-        const minHeight = Math.max(4, Math.round(rows * 0.13))
-        const range = Math.max(4, Math.round(rows * 0.36))
-        const height = Math.min(Math.round(rows * 0.58), minHeight + ((seed * 7) % range))
+        const width = (3 + (seed % 5)) * scale
+        const minHeight = Math.max(4, Math.round(baseRows * 0.13))
+        const range = Math.max(4, Math.round(baseRows * 0.36))
+        const height = Math.min(Math.round(baseRows * 0.58), minHeight + ((seed * 7) % range)) * scale
         farBuildings.push({
           x: farX,
           w: width,
@@ -82,7 +82,7 @@ export const createNeonCityMode = (): ModeRenderer => {
           roof: seed % 3,
           seed,
         })
-        farX += width + (seed % 5 === 0 ? 1 : 0)
+        farX += width + (seed % 5 === 0 ? scale : 0)
         farIndex++
       }
       farLoopWidth = farX
@@ -101,9 +101,12 @@ export const createNeonCityMode = (): ModeRenderer => {
       } = frame
       const energy = overallEnergy(frequency)
       if (!loopWidth || !farLoopWidth) return
-      scroll = (scroll + 0.035 + energy * 0.1) % loopWidth
-      farScroll = (farScroll + 0.014 + energy * 0.035) % farLoopWidth
-      cloudScroll += 0.006 + energy * 0.012
+      const cellSize = FINE_PIXEL_SIZE
+      const distance = motion.advance(frame.now, frame.musicTiming) / cellSize
+      // Let nearby buildings sweep past while the distant skyline drifts.
+      const scroll = (distance * 3) % loopWidth
+      const farScroll = (distance * 0.4) % farLoopWidth
+      const cloudScroll = distance * 0.12
       const wholeScroll = Math.floor(scroll)
       const wholeFarScroll = Math.floor(farScroll)
 
@@ -121,28 +124,24 @@ export const createNeonCityMode = (): ModeRenderer => {
       const moonX = Math.round(cols * 0.78)
       const moonY = Math.round(rows * 0.78)
       const moonRadius = Math.max(3, Math.round(rows * 0.1))
-      for (let row = moonY - moonRadius; row <= moonY + moonRadius; row++) {
-        const half = Math.sqrt(Math.max(0, moonRadius * moonRadius - (row - moonY) ** 2))
-        for (
-          let column = Math.ceil(moonX - half);
-          column <= Math.floor(moonX + half);
-          column++
-        )
-          cell(column, row, CITY_MOON)
-      }
+      fineDisc(cell, moonX, moonY, moonRadius, () => CITY_MOON)
 
-      const cloudSpan = cols + 30
+      const cloudSpan = cols + 30 * scale
       for (let index = 0; index < 3; index++) {
         const rawX =
           (Math.round(cols * (0.12 + index * 0.42)) - Math.floor(cloudScroll) + cloudSpan) %
           cloudSpan
-        const x = rawX - 15
+        const x = rawX - 15 * scale
         const y = Math.round(rows * (0.61 + (index % 2) * 0.11))
-        const width = 9 + (index % 3) * 3
+        const width = (9 + (index % 3) * 3) * scale
         const cloud = CITY_CLOUD[index % CITY_CLOUD.length]
         for (let column = x; column < x + width; column++) cell(column, y, cloud)
         for (let column = x + 2; column < x + width - 2; column++)
           cell(column, y + 1, cloud)
+        cell(x - 1, y, cloud)
+        cell(x + width, y, cloud)
+        cell(x + 1, y + 1, cloud)
+        cell(x + width - 2, y + 1, cloud)
       }
 
       const drawFarBuilding = (building: FarBuilding, x: number) => {
@@ -176,17 +175,17 @@ export const createNeonCityMode = (): ModeRenderer => {
           for (let row = 0; row <= building.h; row++) cell(column, row, body)
 
         const middle = x + Math.floor(building.w / 2)
-        if (building.roof === 1) {
-          for (let column = x + 1; column < x + building.w - 1; column++)
-            cell(column, building.h + 1, body)
-          cell(middle, building.h + 2, body)
-        } else if (building.roof === 2) {
-          for (let column = x + 2; column < x + building.w - 2; column++)
-            cell(column, building.h + 1, body)
-          cell(middle, building.h + 2, body)
+        if (building.roof === 1 || building.roof === 2) {
+          for (let column = x; column < x + building.w; column++) {
+            const distance = Math.min(column - x, x + building.w - 1 - column)
+            const rise = building.roof === 1 ? Math.min(3, distance) : distance
+            for (let row = building.h + 1; row <= building.h + rise; row++)
+              cell(column, row, body)
+            cell(column, building.h + rise + 1, body)
+          }
         } else if (building.roof === 3) {
-          cell(x + 1, building.h + 1, body)
-          cell(x + 1, building.h + 2, body)
+          for (let row = building.h + 1; row <= building.h + 2 * scale; row++)
+            cell(x + scale, row, body)
         }
 
         const signal = magnitude(
@@ -245,17 +244,18 @@ export const createNeonCityMode = (): ModeRenderer => {
         ),
       )
       for (let index = 0; index < rainCount; index++) {
-        const travel = Math.floor(tick * (0.55 + (index % 4) * 0.12))
+        const travel = Math.floor(tick * (0.55 + (index % 4) * 0.12) * scale)
         const headColumn = (index * 47 + travel) % cols
         const rawRow = (index * 31 - travel) % rows
         const headRow = (rawRow + rows) % rows
-        const length = 2 + (index % 3) + (flash > 0 ? 2 : 0)
+        const length = (2 + (index % 3) + (flash > 0 ? 2 : 0)) * scale
         const rain = flash > 0 ? '#eef7ff' : index % 3 === 0 ? '#9cc9ff' : '#6fa7ed'
         for (let offset = 0; offset < length; offset++) {
           const column = headColumn - offset
           const row = headRow + offset
-          if (column >= 0 && column < cols && row >= 0 && row < rows)
+          if (column >= 0 && column < cols && row >= 0 && row < rows) {
             cell(column, row, rain)
+          }
         }
       }
     },

@@ -2,11 +2,11 @@ import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CS
 import {
   Visualizer,
   EngineLoading,
-  VISUALIZER_MODES,
   VISUALIZER_MODE_STORAGE_KEY,
 } from './components'
 import type { StrudelAdapter, VisualizerMode } from './components'
 import type { BeatsSong } from './types'
+import { DEFAULT_MODE, resolveMode } from './components/visualizer/modes'
 
 // lazy so the Strudel/CodeMirror graph (>500kB) only downloads on the Start click
 const StrudelHost = lazy(() => import('./components/StrudelHost'))
@@ -89,7 +89,7 @@ const CHIP_BTN =
 const subtitle = (s: BeatsSong) =>
   [s.author ? `by ${s.author}` : null, s.genre, s.mood].filter(Boolean).join(' · ')
 
-// LED accent dots on the start screen — the visualizer's `spectrum` heat ramp.
+// Warm LED accent dots on the start screen.
 const LED_RAMP = ['#d98e1f', '#f0a02e', '#f25c1f', '#de1a1a', '#b3123f', '#ff2e92']
 
 // The queue list is memoized so the 4Hz progress tick (which re-renders BeatsPlayer)
@@ -162,10 +162,9 @@ export default function BeatsPlayer() {
   const [queueOpen, setQueueOpen] = useState(false)
   const [engineOpen, setEngineOpen] = useState(false)
   const [visualizerMode, setVisualizerMode] = useState<VisualizerMode>(() => {
+    const requested = new URLSearchParams(window.location.search).get('visualizer')
     const saved = localStorage.getItem(VISUALIZER_MODE_STORAGE_KEY)
-    return (VISUALIZER_MODES as readonly string[]).includes(saved ?? '')
-      ? (saved as VisualizerMode)
-      : 'spectrum'
+    return resolveMode(requested) ?? resolveMode(saved) ?? DEFAULT_MODE
   })
 
   const adapterRef = useRef<StrudelAdapter | null>(null)
@@ -182,6 +181,14 @@ export default function BeatsPlayer() {
   // supersede an in-flight one (manual picks always win over auto-advance)
   const playSeqRef = useRef(0)
   const playInFlightRef = useRef(false)
+
+  const getVisualizerTiming = useCallback(() => {
+    if (!vizCtx) return null
+    return {
+      seconds: vizCtx.currentTime,
+      cyclesPerSecond: playing ? (adapterRef.current?.getCps() ?? cpsRef.current) : 0,
+    }
+  }, [vizCtx, playing])
 
   const nowPlaying = queue[currentIdx] ?? null
   // brief "copied!" confirmation after the share link is used
@@ -508,12 +515,12 @@ export default function BeatsPlayer() {
         <Visualizer
           audioContext={vizCtx}
           sourceNode={vizNode}
+          getMusicTiming={getVisualizerTiming}
           isPlaying={playing && !paused}
           paused={paused}
           sizeClass="relative h-full w-full"
           seamless
           sub={6}
-          idleAnimation={false}
           mode={visualizerMode}
           onModeChange={setVisualizerMode}
         />

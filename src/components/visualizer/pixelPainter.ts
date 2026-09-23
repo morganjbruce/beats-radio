@@ -3,6 +3,7 @@ import type { CellPainter, GridSize, LinePainter } from './types'
 export interface PixelPainter {
   cell: CellPainter
   line: LinePainter
+  flush: () => void
   resetFillCache: (color?: string) => void
 }
 
@@ -11,27 +12,56 @@ export const createPixelPainter = (
   grid: GridSize,
   sub: number,
   seamless: boolean,
+  gap = 1,
+  batch = false,
 ): PixelPainter => {
   const { cols, rows } = grid
-  const ledInset = seamless ? 1 : 0
-  const ledSize = sub - 1
+  const ledInset = seamless ? gap : 0
+  const ledSize = sub - gap
   let lastFill = ''
+  let pending: { x: number; y: number; width: number; height: number; color: string } | undefined
 
-  const resetFillCache = (color = '') => {
-    lastFill = color
-  }
-
-  const cell: CellPainter = (column, row, color) => {
+  const fillColor = (color: string) => {
     if (color !== lastFill) {
       context.fillStyle = color
       lastFill = color
     }
-    context.fillRect(
-      column * sub + ledInset,
-      (rows - 1 - row) * sub + ledInset,
-      ledSize,
-      ledSize,
-    )
+  }
+  const flush = () => {
+    if (!pending) return
+    fillColor(pending.color)
+    context.fillRect(pending.x, pending.y, pending.width, pending.height)
+    pending = undefined
+  }
+
+  const resetFillCache = (color = '') => {
+    flush()
+    lastFill = color
+  }
+
+  const cell: CellPainter = (column, row, color) => {
+    const x = column * sub + ledInset
+    const y = (rows - 1 - row) * sub + ledInset
+    // Contiguous fine tiles can share a draw call, particularly sky rows and buildings.
+    if (batch && gap === 0) {
+      if (pending?.color === color) {
+        if (pending.y === y && pending.height === ledSize && x === pending.x + pending.width) {
+          pending.width += ledSize
+          return
+        }
+        if (pending.x === x && pending.width === ledSize && y + ledSize === pending.y) {
+          pending.y = y
+          pending.height += ledSize
+          return
+        }
+      }
+      flush()
+      pending = { x, y, width: ledSize, height: ledSize, color }
+      return
+    }
+    flush()
+    fillColor(color)
+    context.fillRect(x, y, ledSize, ledSize)
   }
 
   const line: LinePainter = (startColumn, startRow, endColumn, endRow, color) => {
@@ -60,5 +90,5 @@ export const createPixelPainter = (
     }
   }
 
-  return { cell, line, resetFillCache }
+  return { cell, line, flush, resetFillCache }
 }

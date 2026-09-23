@@ -3,6 +3,11 @@ export interface GridSize {
   rows: number
 }
 
+export interface MusicTiming {
+  seconds: number
+  cyclesPerSecond: number
+}
+
 export type CellPainter = (column: number, row: number, color: string) => void
 export type LinePainter = (
   startColumn: number,
@@ -22,6 +27,7 @@ export interface ModeFrame extends GridSize {
   tick: number
   flash: number
   now: number
+  musicTiming?: MusicTiming
   resetFillCache: (color?: string) => void
 }
 
