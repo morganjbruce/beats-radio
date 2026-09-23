@@ -38,18 +38,18 @@ describe('fine square pixels', () => {
     expect([...rows]).toEqual([11, 13, 15])
   })
 
-  test('only the three improved scenes are available, with Japan as default', () => {
-    expect(MODES).toEqual(['japan', 'outrun', 'neoncity'])
+  test('the three improved scenes and future strokes are available, with Japan as default', () => {
+    expect(MODES).toEqual(['japan', 'outrun', 'neoncity', 'brushes'])
     expect(Object.keys(createModeRegistry())).toEqual([...MODES])
     expect(DEFAULT_MODE).toBe('japan')
   })
 
   test('previous scene selections resolve, while removed modes fall back to Japan', () => {
-    for (const mode of MODES) {
+    for (const mode of ['japan', 'outrun', 'neoncity'] as const) {
       expect(resolveMode(mode)).toBe(mode)
       expect(resolveMode(`${mode}fine`)).toBe(mode)
     }
-    for (const mode of [null, '', 'spectrum', 'mirror', 'scope', 'pixelfall', 'rain', 'tunnel', 'brushes', 'paintvortex'])
+    for (const mode of [null, '', 'spectrum', 'mirror', 'scope', 'pixelfall', 'rain', 'tunnel', 'paintvortex'])
       expect(resolveMode(mode) ?? DEFAULT_MODE).toBe('japan')
   })
 })

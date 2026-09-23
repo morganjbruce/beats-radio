@@ -99,7 +99,7 @@ export function Visualizer({
           style={{
             width: grid.cols * sub,
             height: grid.rows * sub,
-            imageRendering: 'pixelated',
+            imageRendering: mode === 'brushes' ? 'auto' : 'pixelated',
           }}
         />
       </div>
