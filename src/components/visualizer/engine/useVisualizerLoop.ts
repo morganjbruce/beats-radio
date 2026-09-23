@@ -2,10 +2,9 @@ import { useEffect, useRef, useState, type RefObject } from 'react'
 
 import { bassEnergy } from '../audioMetrics'
 import { PANEL, STOP_TAIL_MS, UNLIT } from '../constants'
-import { drawIdle } from '../idleRenderer'
 import { createModeRegistry, type Mode } from '../modes'
 import { createPixelPainter } from '../pixelPainter'
-import type { GridSize, ModeRenderer } from '../types'
+import type { GridSize, ModeRenderer, MusicTiming } from '../types'
 
 interface VisualizerLoopOptions {
   canvasRef: RefObject<HTMLCanvasElement | null>
@@ -15,9 +14,9 @@ interface VisualizerLoopOptions {
   grid: GridSize
   sub: number
   seamless?: boolean
-  idleAnimation?: boolean
   paused?: boolean
   isPlaying: boolean
+  getMusicTiming?: () => MusicTiming | null
   mode: Mode
 }
 
@@ -45,25 +44,24 @@ export const useVisualizerLoop = ({
   grid,
   sub,
   seamless,
-  idleAnimation,
   paused,
   isPlaying,
+  getMusicTiming,
   mode,
 }: VisualizerLoopOptions) => {
   const [modeRegistry] = useState<Record<Mode, ModeRenderer>>(createModeRegistry)
 
   const seamlessRef = useRef(seamless)
-  const idleAnimationRef = useRef(idleAnimation)
   const pausedRef = useRef(paused)
   const playingRef = useRef(isPlaying)
   const modeRef = useRef(mode)
+  const musicTimingRef = useRef(getMusicTiming)
   const stoppedAtRef = useRef(0)
 
   useEffect(() => {
     seamlessRef.current = seamless
-    idleAnimationRef.current = idleAnimation
     pausedRef.current = paused
-  }, [seamless, idleAnimation, paused])
+  }, [seamless, paused])
 
   useEffect(() => {
     if (playingRef.current && !isPlaying) stoppedAtRef.current = performance.now()
@@ -73,6 +71,10 @@ export const useVisualizerLoop = ({
   useEffect(() => {
     modeRef.current = mode
   }, [mode])
+
+  useEffect(() => {
+    musicTimingRef.current = getMusicTiming
+  }, [getMusicTiming])
 
   useEffect(() => {
     const { cols, rows } = grid
@@ -127,10 +129,9 @@ export const useVisualizerLoop = ({
           tick,
           flash,
           now,
+          musicTiming: musicTimingRef.current?.() ?? undefined,
           resetFillCache: painter.resetFillCache,
         })
-      } else if (idleAnimationRef.current !== false) {
-        drawIdle(now, grid, painter.cell)
       }
     }
 

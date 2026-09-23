@@ -1,48 +1,29 @@
 import type { ModeRenderer } from '../types'
 import { createJapanMode } from './japan'
-import { createMirrorMode } from './mirror'
 import { createNeonCityMode } from './neonCity'
-import { createOutrunMode } from './outrun'
-import { createPixelfallMode } from './pixelfall'
-import { createRainMode } from './rain'
-import { createScopeMode } from './scope'
-import { createSpectrumMode } from './spectrum'
-import { createTunnelMode } from './tunnel'
+import { createOutrunMode, OUTRUN_GRID } from './outrun'
+import { withFinePixels } from './finePixels'
 
-export const MODES = [
-  'spectrum',
-  'mirror',
-  'scope',
-  'pixelfall',
-  'rain',
-  'tunnel',
-  'outrun',
-  'japan',
-  'neoncity',
-] as const
-
+export const MODES = ['japan', 'outrun', 'neoncity'] as const
 export type Mode = (typeof MODES)[number]
+export const DEFAULT_MODE: Mode = 'japan'
 
 export const MODE_LABELS: Record<Mode, string> = {
-  spectrum: 'spectrum',
-  mirror: 'mirror',
-  scope: 'oscilloscope',
-  pixelfall: 'pixel fall',
-  rain: 'rain',
-  tunnel: 'tunnel',
-  outrun: 'outrun drive',
   japan: 'mountain lake',
+  outrun: 'outrun drive',
   neoncity: 'neon city',
 }
 
+/** Keep saved selections and preview links from the fine-grid comparison working. */
+export const resolveMode = (value: string | null): Mode | undefined => {
+  if (value === 'japanfine') return 'japan'
+  if (value === 'outrunfine') return 'outrun'
+  if (value === 'neoncityfine') return 'neoncity'
+  return MODES.find(mode => mode === value)
+}
+
 export const createModeRegistry = (): Record<Mode, ModeRenderer> => ({
-  spectrum: createSpectrumMode(),
-  mirror: createMirrorMode(),
-  scope: createScopeMode(),
-  pixelfall: createPixelfallMode(),
-  rain: createRainMode(),
-  tunnel: createTunnelMode(),
-  outrun: createOutrunMode(),
-  japan: createJapanMode(),
-  neoncity: createNeonCityMode(),
+  japan: withFinePixels(createJapanMode()),
+  outrun: withFinePixels(createOutrunMode(), OUTRUN_GRID, 0.45),
+  neoncity: withFinePixels(createNeonCityMode(), '#050914'),
 })
