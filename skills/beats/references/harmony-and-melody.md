@@ -30,7 +30,7 @@ note("c3 e3 g3 c4 g3 e3").fast(2)
 Keep the scale consistent across voices (if the harmony is C major, bass and pads use C-major
 tones) — avoid random chromatic notes that clash.
 
-### Lock the bass to the harmonic plan (the #1 alignment failure)
+### Lock the bass to the harmonic plan
 The bass is the ear's harmonic reference. Derive it from the same progression, vamp, or pedal plan
 as the other pitched voices; do not compose an independent bassline and merely hope it fits.
 
@@ -43,7 +43,7 @@ as the other pitched voices; do not compose an independent bassline and merely h
 
 ---
 ## Writing melodies with craft (not scale runs)
-A predictable melody is the #1 thing that makes a song feel generic. Avoid stepwise diatonic runs
+A predictable melody makes a song feel generic. Avoid stepwise diatonic runs
 and aimless wandering. Apply these when the genre calls for melodic content:
 
 - **Motif, then development.** Write ONE short, distinctive gesture (2–4 notes/rhythms) and

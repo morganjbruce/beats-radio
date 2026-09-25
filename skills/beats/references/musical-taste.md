@@ -12,8 +12,8 @@ Bad music is usually not "wrong notes" — it's unclear intention. Every piece m
 **"how should the listener feel, physically and emotionally, over time?"**
 
 ## Mood → intention → mechanics
-For each mood, reason in three layers, in this order: (1) emotional posture (how the body feels),
-(2) musical intention (what the music is trying to do), (3) concrete choices (what to write).
+Each mood below maps an emotional posture (how the body feels) to a musical intention (what the
+music is trying to do) and the concrete choices that create it.
 
 **CALM / SAFE / GROUNDED** — relaxed shoulders, steady breathing; nothing urgent.
 - Slow-to-moderate tempo (60–90 cpm, or slower like `setcps(0.7)` for atmospheric); stable harmony (avoid rapid changes); few voices; soft attacks (triangle/sine/filtered saw); low dynamics (gain 0.25–0.4); minimal randomness; `perlin` modulation for organic movement; detuned layers for width. Calm does NOT mean boring or sparse — it comes from tempo, harmony, and dynamics. If it feels jittery you failed; if it lacks harmonic foundation you also failed.
@@ -53,12 +53,11 @@ Taste is restraint plus intention.
 - Drums support, don't dominate; bass supports, doesn't dominate; effects subtle and supportive; no single element overwhelms.
 - Typical voice structure: (1) bass — foundation, simple; (2) chords/pad — harmonic bed; (3) drums — groove, background; (4) optional texture, arp, or extra harmonic layer.
 
-## Pre-generation checklist
-Before writing code, answer internally:
+## Know your intent
+A song works when you can answer:
 1. What should the listener feel in their body?
 2. What should change over time?
 3. What should NOT change?
 
-Only then translate into code. If unsure, get clearer and more intentional — not necessarily
-simpler, and never blander. A distinctive idea executed cleanly beats both cluttered complexity
-and safe cliché.
+If unsure, get clearer and more intentional — not necessarily simpler, and never blander. A
+distinctive idea executed cleanly beats both cluttered complexity and safe cliché.
