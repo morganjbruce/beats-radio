@@ -21,7 +21,7 @@ export async function checkPixelArtScenes(names = ['forest', 'futurecity', 'dese
   const result = []
   for (const name of names) {
     const [file, exported] = modules[name]
-    const createScene = (await import(`/src/components/visualizer/modes/${file}.ts`))[exported]
+    const createScene = (await import(`./${file}.ts`))[exported]
     const render = (kind) => {
       canvas.width = 320
       canvas.height = 100

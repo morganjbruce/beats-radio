@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { createPixelArtMode, type SceneAudio } from '../src/components/visualizer/modes/pixelArtScene'
-import type { ModeFrame } from '../src/components/visualizer/types'
+import { createPixelArtMode, type SceneAudio } from './pixelArtScene'
+import type { ModeFrame } from '../types'
 
 // Verify the shared contract independently of any scene's drawing implementation.
 function withCanvas(run: (frame: ModeFrame) => void) {

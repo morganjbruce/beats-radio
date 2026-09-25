@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { createModeRegistry, DEFAULT_MODE, MODES, resolveMode } from '../src/components/visualizer/modes'
+import { createModeRegistry, DEFAULT_MODE, MODES, resolveMode } from './index'
 
 describe('pixel scene selection', () => {
   test('registers the seven selected scenes and defaults to Forest', () => {

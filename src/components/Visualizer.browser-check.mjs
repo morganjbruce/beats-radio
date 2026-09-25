@@ -1,7 +1,7 @@
 // Run with agent-browser on Vite to exercise the mounted React event handlers.
 export async function checkVisualizerNavigation() {
-  const { MODES, MODE_LABELS } = await import('/src/components/visualizer/modes/index.ts')
-  const { MODE_KEY } = await import('/src/components/visualizer/constants.ts')
+  const { MODES, MODE_LABELS } = await import('./visualizer/modes/index.ts')
+  const { MODE_KEY } = await import('./visualizer/constants.ts')
   const stage = document.querySelector('section[aria-label^="Music visualizer"]')
   const canvas = stage?.querySelector('canvas')
   if (!stage || !canvas) throw new Error('Missing visualizer')
