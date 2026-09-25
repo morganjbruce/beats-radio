@@ -13,6 +13,7 @@ TODO: add
 * https://beats-radio.fly.dev/?song=72 (The Cars)
 * https://beats-radio.fly.dev/?song=91 (90s DJ Premier/Nas track)
 * https://beats-radio.fly.dev/?song=109 (over-the-top teenage symphony)
+* https://beats-radio.fly.dev/?song=139 (teenage symphony: same prompt, better model)
 * https://beats-radio.fly.dev/?song=104 (The Streets?)
 * https://beats-radio.fly.dev/?song=105 (wall of sound, My Bloody Valentine with synths)
 * https://beats-radio.fly.dev/?song=126 (Claude attempts Death Grips)
@@ -34,8 +35,9 @@ My thought process:
 9. Ah, there’s a `/radio` skill now in Claude Code
 10. That just opens YouTube, lame. Let the agents create!
 11. Let's make this into an agent-driven radio
-12. (Fable gets released) it should have Winamp style visualisations too, right?
-13. Here we are :sparkle:
+12. (Fable gets released) it should have visualisations too, right?
+13. (more new models get released) we can make these even better!
+14. Here we are :sparkle:
 
 It also turns out Claude loves writing Chromatics-inspired italodisco and Ethiopian jazz. Who knew?
 
@@ -79,7 +81,7 @@ The skill will open http://localhost:3001: click **▶ Start radio** once to unl
 
 ## Usage
 
-- **Themes** — `/beats midnight city pop`, `/beats something like Boards of Canada`, or just
+- **Themes** — `/beats midnight city pop`, `/beats Boards of Canada`, or just
   `/beats` and let it choose. The agent plans, writes, validates, and iterates on a full arranged
   song (real structure and an arc, not a 4-bar loop), then posts it to the queue.
 - **The queue** — songs stream to every open player tab over SSE and advance on the cycle
@@ -148,9 +150,9 @@ __Share it with your friends, send songs from each other's agents!__
 
 # What would make this better?
 
-* A real critique loop. Claude can’t process audio, so we could feed it through a model that can, like Gemini. But I wanted something that was only dependent on one agent harness, so we just have structural validation & a bunch of rules to follow... which mostly works, but sometimes you get slop
+* A real critique loop. Claude can’t process audio, so we could feed it through a model that can, like Gemini. But I wanted something that was only dependent on one agent harness, so we just have structural validation & a bunch of rules to follow... which mostly works, but sometimes you get slop. It usually behaves better when a) you prompt with more detail; b) you stick within the sound palette (eg heavy metal doesn't really work, because sawtooth inherently sounds too robotic)
 * Build a corpus of generated songs that meet human preference, and use those as examples for Claude of good/bad songwriting.
-* It’s probably overfitted on verse-chorus-verse-chorus-bridge songs, because I got sick of little loops
+* It’s probably overfitted on a very simple verse-chorus-verse-chorus-bridge song structure
 * It could be faster, I haven't optimised for speed at all (can take 3-6m to generate a song on large models w/ high+ thinking)
 * 99.7FM Wu-Tang Claw?
 
@@ -168,7 +170,7 @@ See also:
 
 * It’s not a replacement for human creativity and genius, I built this to satisfy my curiousity! 
 * Best to think of these as rough prototypes, not real songs
-* Fable/Opus love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching
-* You probably shouldn't read my code too closely, this is the repo where I let the agents run wild
+* Fable/Opus/Astra/Sol love using every cliche in the book, but sometimes, they generate something that’s (at the very least) memorable, and sometimes genuinely touching
+* Don't bother reading the code too closely, the agents have run wild in this repo (especially in the visualisations)
 
 
