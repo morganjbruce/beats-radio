@@ -65,7 +65,7 @@ export const code   = `setcps(...)
 slowcat(/* ... */)            // or one continuously evolving stack(...)
 `
 // provenance — the radio stores these:
-export const model  = 'claude-opus-4-8'   // the id of the model that composed this song
+export const model  = '<model id>'         // the exact id of the model composing this song
 export const prompt = 'short single-quoted brief: the theme + any direction'
 export const author = '...'                // optional
 ```
@@ -84,8 +84,9 @@ Continue any independent setup while it works, but wait for that final summary b
 
 If sub-agents aren't available, do the full process below inline.
 
-## 5. The composition process — all four steps, in order
-### Plan (in thinking — never in code comments)
+## 5. The composition process
+### Plan
+Settle these before writing code; keep the plan out of code comments.
 - **Feeling** — what should the listener feel in their body, over time? (`references/musical-taste.md`)
 - **Structure, chosen by genre** — commit to ONE: verse/chorus → `slowcat` sections; hypnotic/electronic → one evolving pattern; experimental → layering/phasing, optionally seasoned with probabilistic variation (`references/structure-and-length.md`)
 - **Palette & voice budget** — 5–6 sounds from the allowed set only (`references/sounds.md`); 3–5 voices at once, the full stack saved for one brief peak.
