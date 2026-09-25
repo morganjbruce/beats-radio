@@ -6,6 +6,7 @@ import {
 } from './components'
 import type { StrudelAdapter, VisualizerMode } from './components'
 import type { BeatsSong } from './types'
+import { shuffle } from './shuffle'
 import { DEFAULT_MODE, resolveMode } from './components/visualizer/modes'
 
 // lazy so the Strudel/CodeMirror graph (>500kB) only downloads on the Start click
@@ -357,8 +358,8 @@ export default function BeatsPlayer() {
   // clock, and resumes if paused — exactly playAt's contract. Warmup/viz re-sets are no-ops.
   const restartSong = useCallback(() => playAt(idxRef.current), [playAt])
 
-  // On start, seed the queue from the server's persisted song log (SQLite), oldest →
-  // newest, so the list reads chronologically and new songs naturally extend the end.
+  // Shuffle the saved library once per session. Keep that order during playback;
+  // new songs append normally, and permalink lookup still uses each song's stable ID.
   useEffect(() => {
     if (!started) return
     let cancelled = false
@@ -366,7 +367,7 @@ export default function BeatsPlayer() {
       .then((r) => r.json())
       .then((songs: BeatsSong[]) => {
         if (cancelled || !Array.isArray(songs)) return
-        setList([...songs].reverse()) // endpoint returns newest-first; we want chronological
+        setList(shuffle(songs))
       })
       .catch(() => {})
     return () => {
