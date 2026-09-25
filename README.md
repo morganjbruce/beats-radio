@@ -4,7 +4,7 @@ I spent some time teaching Claude to write music in Javascript and inadvertently
 
 # Watch an example
 
-TODO: add
+https://github.com/user-attachments/assets/4594cabd-413a-497b-ae97-4ec9a55d5b51
 
 (or visit [my radio](https://beats-radio.fly.dev))
 
