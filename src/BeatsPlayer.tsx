@@ -186,8 +186,9 @@ export default function BeatsPlayer() {
   const getVisualizerTiming = useCallback(() => {
     if (!vizCtx) return null
     return {
-      seconds: vizCtx.currentTime,
+      seconds: Math.max(0, vizCtx.currentTime - startTimeRef.current),
       cyclesPerSecond: playing ? (adapterRef.current?.getCps() ?? cpsRef.current) : 0,
+      cycles: adapterRef.current?.getCycle?.() ?? undefined,
     }
   }, [vizCtx, playing])
 
