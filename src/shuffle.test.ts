@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { shuffle } from '../src/shuffle'
+import { shuffle } from './shuffle'
 
 test('shuffling preserves every song object and permalink ID without mutating the source', () => {
   const songs = [{ id: 138 }, { id: 91 }, { id: 7 }, { id: 1 }]
