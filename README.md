@@ -18,6 +18,7 @@ TODO: add
 * https://beats-radio.fly.dev/?song=105 (wall of sound, My Bloody Valentine with synths)
 * https://beats-radio.fly.dev/?song=126 (Claude attempts Death Grips)
 * https://beats-radio.fly.dev/?song=31 (Chromatics inspired italo-disco)
+* https://beats-radio.fly.dev/?song=140 (opus 5.5 does JPEGMAFIA)
 
 
 # Why did you make this?
