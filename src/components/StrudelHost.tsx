@@ -17,6 +17,8 @@ export interface StrudelAdapter {
   getOutputNode: () => AudioNode | null;
   /** The scheduler's live cps — only meaningful after run() has resolved. */
   getCps: () => number | null;
+  /** Musical cycle position from Strudel's scheduler, including live tempo changes. */
+  getCycle?: () => number | null;
   /** Fire inaudible triggers for every sound a song uses so its sample buffers are
    *  fetched & cached BEFORE they're needed (samples otherwise load lazily on first hit). */
   warmup: (code: string) => void;
@@ -374,6 +376,12 @@ function StrudelHost({ onReady, onPlayingChange }: StrudelHostProps) {
           getCps: () => {
             const cps = strudelRef.current?.repl?.scheduler?.cps;
             return typeof cps === "number" && isFinite(cps) && cps > 0 ? cps : null;
+          },
+          getCycle: () => {
+            const scheduler = strudelRef.current?.repl?.scheduler;
+            if (typeof scheduler?.now !== "function") return null;
+            const cycle = scheduler.now();
+            return typeof cycle === "number" && Number.isFinite(cycle) ? cycle : null;
           },
           warmup: (code: string) => {
             const sd = superdoughRef.current;

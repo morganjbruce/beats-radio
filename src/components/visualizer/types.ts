@@ -6,6 +6,8 @@ export interface GridSize {
 export interface MusicTiming {
   seconds: number
   cyclesPerSecond: number
+  /** Scheduler position; preferable to seconds × current tempo after tempo changes. */
+  cycles?: number
 }
 
 export type CellPainter = (column: number, row: number, color: string) => void
