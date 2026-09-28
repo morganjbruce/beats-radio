@@ -212,6 +212,10 @@ export function startServer(opts?: StartServerOptions) {
     const indexHtml = readFileSync(join(staticDir, 'index.html'), 'utf8')
     const lookupSongMeta: SongMetaLookup = (id) => songMetaById.get(id) as SongMeta | null
 
+    // Vite fingerprints everything in /assets, so browsers can keep each build's files
+    // indefinitely; new deploys get new URLs. Other paths still revalidate normally.
+    app.use('/assets', express.static(join(staticDir, 'assets'), { maxAge: '1y', immutable: true }))
+
     // index:false so `/` reaches the handler below — it must see ?song=<id> to inject tags
     app.use(express.static(staticDir, { index: false }))
     app.use((req, res, next) => {
